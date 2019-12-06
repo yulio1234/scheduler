@@ -1,0 +1,3 @@
+rootProject.name = 'ca-scheduler-proj'
+
+include 'ca-scheduler-common','ca-scheduler-client','ca-scheduler-server'
