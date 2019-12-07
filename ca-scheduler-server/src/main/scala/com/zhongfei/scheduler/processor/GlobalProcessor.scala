@@ -19,8 +19,8 @@ object GlobalProcessor{
   case class AppMessage(peer: Peer,protocol: Protocol) extends Command
   def apply(option: GlobalProcessorOption): Behavior[Command] = Behaviors.setup(context =>
     option.startModel match {
-      case StartModel.SINGLETON => new GlobalProcessor(option,context).singletonProcess()
-      case StartModel.CLUSTER =>new GlobalProcessor(option,context).clusterProcess()
+      case n if (n ==StartModel.SINGLETON.id) => new GlobalProcessor(option,context).singletonProcess()
+      case n if (n==StartModel.CLUSTER.id) =>new GlobalProcessor(option,context).clusterProcess()
     }
   )
 }
@@ -35,8 +35,8 @@ private class GlobalProcessor(option:GlobalProcessorOption,actorContext:  ActorC
 
   override def process: Behavior[Command] = {
     option.startModel match {
-      case StartModel.SINGLETON => singletonProcess()
-      case StartModel.CLUSTER => clusterProcess()
+      case n if(StartModel.SINGLETON == n) => singletonProcess()
+      case n if(StartModel.CLUSTER == n) => clusterProcess()
     }
   }
 

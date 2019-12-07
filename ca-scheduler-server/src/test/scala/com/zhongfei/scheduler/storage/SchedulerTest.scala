@@ -1,7 +1,11 @@
 package com.zhongfei.scheduler.storage
 
-import com.zhongfei.scheduler.options.RocksDbOptions
+import java.time.LocalTime
 
+import akka.pattern.CircuitBreaker
+
+import scala.concurrent.{ExecutionContext, Future}
+import ExecutionContext.Implicits.global
 /**
   * @Auther: yuli
   * @Date: 2019/10/11 14:54
@@ -9,14 +13,10 @@ import com.zhongfei.scheduler.options.RocksDbOptions
   */
 object SchedulerTest {
   def main(args: Array[String]): Unit = {
-    val store = new RocksRawKVStore()
-    store.init(RocksDbOptions("D:\\rocksDb"))
-
-    store.put("1".getBytes,"hello".getBytes())
-    val bytes = store.get("1".getBytes())
-
-
-     val str = new String(bytes)
-    println(str)
+    Future{
+      Thread.sleep(1000)
+      println(s"This is thepresentat ${LocalTime.now()}")
+    }
+    new CircuitBreaker()
   }
 }

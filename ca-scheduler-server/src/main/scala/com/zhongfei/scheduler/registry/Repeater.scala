@@ -16,13 +16,14 @@ object Repeater{
 /**
  * 转发器，专门处理远程通讯
  */
-class Repeater(context:ActorContext[Command]) extends AbstractBehavior[Repeater.Command](context){
-  override def onMessage(msg: Command): Behavior[Command] = {
-    case Reply(response,replyTo) =>
-      replyTo.writeAndFlush(response).addListener((future: ChannelFuture) => {
+class Repeater(context:ActorContext[Command]) {
+
+//  override def onMessage(msg: Command): Behavior[Command] = {
+//    case Reply(response,replyTo) =>
+//      replyTo.writeAndFlush(response).addListener((future: ChannelFuture) => {
 //        future.isSuccess match {
 //          case false => throw  RepeaterChannelWriteException()
 //        }
-      })
-  }
+//      })
+//  }
 }

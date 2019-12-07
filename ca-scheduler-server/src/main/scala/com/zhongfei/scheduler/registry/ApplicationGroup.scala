@@ -13,7 +13,7 @@ object ApplicationGroup{
    * @param appName
    * @return
    */
-  def apply(appName: String): Behavior[Command] = Behaviors.setup(context => new ApplicationGroup(context,String).handle(Map.empty))
+  def apply(appName: String): Behavior[Command] = Behaviors.setup(context => new ApplicationGroup(context,appName).handle(Map.empty))
 }
 private class ApplicationGroup(context:ActorContext[ApplicationGroup.Command],appName:String){
 
@@ -31,7 +31,7 @@ private class ApplicationGroup(context:ActorContext[ApplicationGroup.Command],ap
         }
         context.log.info(s"检测到应用注册消息 :$peer")
 
-        context.spawn(Application(peer))
+//        context.spawn(Application(peer))
         Behaviors.same
     }
   }}

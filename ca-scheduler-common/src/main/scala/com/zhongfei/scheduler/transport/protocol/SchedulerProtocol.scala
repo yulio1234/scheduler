@@ -14,7 +14,8 @@ object SchedulerProtocol{
    * 协议类型enum
    */
   object ProtocolTypeEnum extends Enumeration{
-    val Request, Response = Value
+    val Request = Value(0)
+    val Response = Value(1)
   }
 
 

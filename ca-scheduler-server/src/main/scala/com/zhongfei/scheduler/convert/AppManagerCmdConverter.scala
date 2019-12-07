@@ -14,10 +14,10 @@ object AppManagerCmdConverter extends Converter[Protocol,Command,Peer]{
     message match {
       case Request(_, _, _, actionId, actionType, _, _, _,appName)=>
         actionType match {
-          case ActionTypeEnum.Register => AppRegisterRequest(actionId,new String(appName),attachment)
-          case ActionTypeEnum.Unregister => AppUnregisterRequest(actionId,new String(appName),attachment)
+          case n if(n == ActionTypeEnum.Register.id) => AppRegisterRequest(actionId,new String(appName),attachment)
+          case n if(n == ActionTypeEnum.Unregister.id) => AppUnregisterRequest(actionId,new String(appName),attachment)
         }
-      case Response(magic, version, protocolType, actionId, success, errorCode, timestamp) =>  _
+//      case Response(magic, version, protocolType, actionId, success, errorCode, timestamp) =>  _
     }
   }
 }

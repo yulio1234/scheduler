@@ -29,20 +29,20 @@ class NettyServer(node: Node,processor: ActorRef[Message]) extends Lifecycle{
           .addLast(new SchedulerProtocolEncoder)
           .addLast(new ServerHandler(processor))
       }
-    }).childOption(ChannelOption.TCP_NODELAY, true)
-      .childOption(ChannelOption.SO_KEEPALIVE, true)
+    }).childOption(ChannelOption.TCP_NODELAY, Boolean.box(true))
+      .childOption(ChannelOption.SO_KEEPALIVE, Boolean.box(true))
       .bind(node.host, node.port)
       .syncUninterruptibly
   }
 
   override def shutdown(): Unit = {
     if (bossGroup != null) {
-      bossGroup.shutdownGracefully
+      bossGroup.shutdownGracefully()
       bossGroup = null
     }
 
     if (workerGroup != null) {
-      workerGroup.shutdownGracefully
+      workerGroup.shutdownGracefully()
       workerGroup = null
     }
   }

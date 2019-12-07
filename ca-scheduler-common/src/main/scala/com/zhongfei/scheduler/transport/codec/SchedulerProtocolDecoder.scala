@@ -26,7 +26,7 @@ class SchedulerProtocolDecoder extends ByteToMessageDecoder{
         //协议类型
         val protocolType = in.readByte()
         //处理请求协议
-        if (protocolType == protocl.ProtocolTypeEnum.Request) {
+        if (protocolType == protocl.ProtocolTypeEnum.Request.id) {
           val actionId = in.readLong()
           val actionType = in.readByte()
           val timestamp = in.readLong()
@@ -37,7 +37,7 @@ class SchedulerProtocolDecoder extends ByteToMessageDecoder{
           val request = Request(magic,version,protocolType,actionId,actionType,timestamp,expire,length,bytes)
           out.add(request)
           //处理响应协议
-        }else if(protocolType == protocl.ProtocolTypeEnum.Response){
+        }else if(protocolType == protocl.ProtocolTypeEnum.Response.id){
           val actionId = in.readLong()
           val success = in.readBoolean()
           val errorByte = in.readByte()
