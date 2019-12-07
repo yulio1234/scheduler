@@ -4,7 +4,7 @@ import java.net.InetSocketAddress
 
 import akka.actor.typed.ActorRef
 import com.zhongfei.scheduler.Message
-import com.zhongfei.scheduler.processor.GlobalProcessor.AppMessage
+import com.zhongfei.scheduler.processor.DispatchProcessor.RequestCommand
 import com.zhongfei.scheduler.transport.Peer
 import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.Protocol
 import com.zhongfei.scheduler.transport.protocol.{SchedulerProtocol => Protocol}
@@ -43,7 +43,7 @@ class ServerHandler(processor: ActorRef[Message]) extends SimpleChannelInboundHa
     val peer:Peer = createPeer(ctx)
     info(s"读取到客户端数据，$Peer")
     //将netty消息发送全局处理器，如果遇到问题，应该由死信队列处理
-    processor ! AppMessage(peer,protocol)
+    processor ! RequestCommand(peer,protocol)
   }
 
   /**

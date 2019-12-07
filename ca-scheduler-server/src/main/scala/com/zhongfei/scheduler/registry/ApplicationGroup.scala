@@ -1,9 +1,9 @@
 package com.zhongfei.scheduler.registry
 
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import akka.actor.typed.scaladsl.{AbstractBehavior, ActorContext, Behaviors}
 import com.zhongfei.scheduler.registry.ApplicationGroup.Command
-import com.zhongfei.scheduler.registry.ApplicationManager.AppRegisterRequest
+import com.zhongfei.scheduler.registry.ApplicationManager.HeartbeatRequest
 
 object ApplicationGroup{
   trait Command
@@ -20,7 +20,7 @@ private class ApplicationGroup(context:ActorContext[ApplicationGroup.Command],ap
   def handle(appMap:Map[String,ActorRef[Application.Command]]):Behavior[Command] = Behaviors.receiveMessage[Command] { message => {
     message match {
         //处理应用注册消息
-      case request @ AppRegisterRequest(actionId, appName, peer) =>
+      case request @ HeartbeatRequest(actionId, appName, peer) =>
         //检查是否由存在的应用，如果有就返回成功，没有就创建一个
         appMap.get(peer.uri()) match {
           case Some(application) =>

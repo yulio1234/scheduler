@@ -15,8 +15,8 @@ object AppManagerProcessor{
 /**
  * 处理应用管理器相关事务
  */
-private class AppManagerProcessor(replyTo:ActorRef[GlobalProcessor.Command],transferTo:ActorRef[ApplicationManager.Command]) extends Processor[Behavior[Command]]{
-  override def process: Behavior[Command] = {
+private class AppManagerProcessor(replyTo:ActorRef[DispatchProcessor.Command], transferTo:ActorRef[ApplicationManager.Command]) extends Processor[Nothing,Behavior[Command]]{
+  override def process(nothing: Nothing): Behavior[Command] = {
     Behaviors.same
   }
 }

@@ -27,6 +27,6 @@ object SchedulerProtocol{
   }
 
   trait Protocol extends Message
-  case class Request(magic:Byte=magic,version:Byte=version,protocolType:Byte,actionId:Long,actionType:Byte,timestamp:Long,expire:Long,length:Short,appName:Array[Byte]) extends Protocol
-  case class Response(magic:Byte=magic,version:Byte=version,protocolType:Byte,actionId:Long,success:Boolean,errorCode:Byte,timestamp:Long) extends Protocol
+  case class Request(magic:Byte=magic,version:Byte=version,protocolType:Byte=ProtocolTypeEnum.Request.id.toByte,actionId:Long,actionType:Byte,timestamp:Long=System.currentTimeMillis(),expire:Long,length:Short,appName:Array[Byte]) extends Protocol
+  case class Response(magic:Byte=magic,version:Byte=version,protocolType:Byte = ProtocolTypeEnum.Response.id.toByte,actionId:Long,success:Boolean=true,errorCode:Byte = -1,timestamp:Long = System.currentTimeMillis()) extends Protocol
 }

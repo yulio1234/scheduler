@@ -8,4 +8,4 @@ import com.zhongfei.scheduler.registry.ApplicationManager.Command
  *
  * @param startModel
  */
-case class GlobalProcessorOption(startModel:Byte,appManagerActor: ActorRef[Command]) extends Option
+case class DispatchProcessorOption(startModel:Byte,appManagerActor: ActorRef[Command]) extends Option

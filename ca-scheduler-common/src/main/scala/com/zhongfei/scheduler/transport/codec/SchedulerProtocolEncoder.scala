@@ -13,7 +13,7 @@ import SchedulerProtocol.Protocol
 class SchedulerProtocolEncoder extends MessageToByteEncoder[Protocol]{
   override def encode(ctx: ChannelHandlerContext, protocol: Protocol, out: ByteBuf): Unit = {
     protocol match {
-      case Request(magic, version, protocolType, actionId, actionType, timestamp, expire, length, appName) =>
+      case Request(magic, version, protocolType, actionId, actionType, timestamp, expire, length, content) =>
         out.writeByte(magic)
         out.writeByte(version)
         out.writeByte(protocolType)
@@ -22,7 +22,7 @@ class SchedulerProtocolEncoder extends MessageToByteEncoder[Protocol]{
         out.writeLong(timestamp)
         out.writeLong(expire)
         out.writeShort(length)
-        out.writeBytes(appName)
+        out.writeBytes(content)
       case Response(magic, version, protocolType, actionId, success, errorCode, timestamp) =>
         out.writeByte(magic)
         out.writeByte(version)
