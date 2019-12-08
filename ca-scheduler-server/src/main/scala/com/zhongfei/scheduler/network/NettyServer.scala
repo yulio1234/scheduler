@@ -1,4 +1,4 @@
-package com.zhongfei.scheduler.registry
+package com.zhongfei.scheduler.network
 
 import akka.actor.typed.ActorRef
 import com.zhongfei.scheduler.Message

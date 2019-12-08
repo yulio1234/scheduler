@@ -23,7 +23,7 @@ class SchedulerProtocolEncoder extends MessageToByteEncoder[Protocol]{
         out.writeLong(expire)
         out.writeShort(length)
         out.writeBytes(content)
-      case Response(magic, version, protocolType, actionId, success, errorCode, timestamp) =>
+      case Response(magic, version, protocolType, actionId, success, errorCode, timestamp,length,content) =>
         out.writeByte(magic)
         out.writeByte(version)
         out.writeByte(protocolType)
@@ -31,6 +31,10 @@ class SchedulerProtocolEncoder extends MessageToByteEncoder[Protocol]{
         out.writeBoolean(success)
         out.writeByte(errorCode)
         out.writeLong(timestamp)
+        out.writeInt(length)
+        if(content != null){
+          out.writeBytes(content)
+        }
     }
   }
 }

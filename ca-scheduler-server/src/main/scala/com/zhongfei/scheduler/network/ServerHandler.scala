@@ -1,10 +1,10 @@
-package com.zhongfei.scheduler.registry
+package com.zhongfei.scheduler.network
 
 import java.net.InetSocketAddress
 
 import akka.actor.typed.ActorRef
 import com.zhongfei.scheduler.Message
-import com.zhongfei.scheduler.processor.DispatchProcessor.RequestCommand
+import com.zhongfei.scheduler.network.CoreDispatcher.ProtocolCommand
 import com.zhongfei.scheduler.transport.Peer
 import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.Protocol
 import com.zhongfei.scheduler.transport.protocol.{SchedulerProtocol => Protocol}
@@ -15,7 +15,7 @@ import io.netty.channel.{ChannelHandlerContext, SimpleChannelInboundHandler}
  * 服务端处理器
  * @param
  */
-class ServerHandler(processor: ActorRef[Message]) extends SimpleChannelInboundHandler[Protocol] with Logging{
+class ServerHandler(dispatcher: ActorRef[Message]) extends SimpleChannelInboundHandler[Protocol] with Logging{
 
 
   override def channelActive(ctx: ChannelHandlerContext): Unit = {
@@ -43,7 +43,7 @@ class ServerHandler(processor: ActorRef[Message]) extends SimpleChannelInboundHa
     val peer:Peer = createPeer(ctx)
     info(s"读取到客户端数据，$Peer")
     //将netty消息发送全局处理器，如果遇到问题，应该由死信队列处理
-    processor ! RequestCommand(peer,protocol)
+    dispatcher ! ProtocolCommand(peer,protocol)
   }
 
   /**

@@ -17,6 +17,5 @@ object SchedulerTest {
       Thread.sleep(1000)
       println(s"This is thepresentat ${LocalTime.now()}")
     }
-    new CircuitBreaker()
   }
 }
