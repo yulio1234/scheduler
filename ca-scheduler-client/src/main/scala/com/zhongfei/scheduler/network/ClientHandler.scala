@@ -11,6 +11,11 @@ class ClientHandler(dispatcher:ActorRef[Command]) extends SimpleChannelInboundHa
     dispatcher ! ProtocolCommand(msg)
   }
 
+  override def channelActive(ctx: ChannelHandlerContext): Unit = {
+    info("连接服务器成功")
+    super.channelActive(ctx)
+  }
+
   override def exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable): Unit = {
     error("服务器链接失败",cause)
     ctx.close()

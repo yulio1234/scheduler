@@ -15,7 +15,7 @@ import io.netty.channel.{ChannelHandlerContext, SimpleChannelInboundHandler}
  * 服务端处理器
  * @param
  */
-class ServerHandler(dispatcher: ActorRef[Message]) extends SimpleChannelInboundHandler[Protocol] with Logging{
+class ServerHandler(dispatcher: ActorRef[CoreDispatcher.Command]) extends SimpleChannelInboundHandler[Protocol] with Logging{
 
 
   override def channelActive(ctx: ChannelHandlerContext): Unit = {

@@ -1,6 +1,6 @@
 package com.zhongfei.scheduler.utils
 
-trait Lifecycle {
-  def init():Unit
-  def shutdown():Unit
+trait Lifecycle[I,S] {
+  def init():I
+  def shutdown():S
 }

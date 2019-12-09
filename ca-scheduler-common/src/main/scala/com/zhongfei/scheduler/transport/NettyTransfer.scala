@@ -5,7 +5,7 @@ import akka.actor.typed.{Behavior, PostStop}
 import com.zhongfei.scheduler.Processor
 import com.zhongfei.scheduler.transport.NettyTransfer.{Command, Failure, Success, WrappedResponse}
 import com.zhongfei.scheduler.transport.SchedulerExceptions.NetworkTransferException
-import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.Response
+import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.{Request, Response}
 import io.netty.channel.{Channel, ChannelFuture}
 
 import scala.concurrent.duration.FiniteDuration
@@ -18,7 +18,7 @@ object NettyTransfer{
   //处理失败
   case class Failure(cause:Throwable) extends Command
   case class WrappedResponse(response: Response) extends Command
-
+  case class WrappedRequest(request: Request) extends Command
   def apply(channel: Channel,retryCount:Int,interval: FiniteDuration,closeChannel:Boolean = false): Behavior[Command] = Behaviors.setup{context =>
         Behaviors.withTimers{timers => new NettyTransfer(channel, timers, interval, context,closeChannel).process(retryCount)}}
 }

@@ -1,7 +1,8 @@
 package com.zhongfei.scheduler.network
 
+import java.net.InetSocketAddress
+
 import akka.actor.typed.ActorRef
-import com.zhongfei.scheduler.Message
 import com.zhongfei.scheduler.transport.Node
 import com.zhongfei.scheduler.transport.codec.{SchedulerProtocolDecoder, SchedulerProtocolEncoder}
 import com.zhongfei.scheduler.utils.Lifecycle
@@ -9,19 +10,16 @@ import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
-import io.netty.channel.{ChannelInitializer, ChannelOption}
+import io.netty.channel.{ChannelFuture, ChannelInitializer, ChannelOption}
 
-class NettyServer(node: Node,processor: ActorRef[Message]) extends Lifecycle{
-  private var bossGroup:NioEventLoopGroup = null
-  private var workerGroup:NioEventLoopGroup = null
-
-  override def init(): Unit = {
-    bossGroup = new NioEventLoopGroup(1)
-    workerGroup = new NioEventLoopGroup(Runtime.getRuntime.availableProcessors() * 2)
-    val bootstrap = new ServerBootstrap
-    bootstrap.group(bossGroup, workerGroup)
-      .channel(classOf[NioServerSocketChannel])
-      .childHandler(new ChannelInitializer[SocketChannel]() {
+class NettyServer(host:String,port:Int,processor: ActorRef[CoreDispatcher.Command]) extends Lifecycle[ChannelFuture,Unit]{
+  private val bossGroup: NioEventLoopGroup = new NioEventLoopGroup(1)
+  private val workerGroup:NioEventLoopGroup = new NioEventLoopGroup(Runtime.getRuntime.availableProcessors() * 2)
+  private val bootstrap = new ServerBootstrap
+  bootstrap.group(bossGroup, workerGroup)
+    .channel(classOf[NioServerSocketChannel])
+    .localAddress(new InetSocketAddress(host,port))
+    .childHandler(new ChannelInitializer[SocketChannel]() {
       @throws[Exception]
       override protected def initChannel(socketChannel: SocketChannel): Unit = {
         socketChannel.pipeline
@@ -30,20 +28,13 @@ class NettyServer(node: Node,processor: ActorRef[Message]) extends Lifecycle{
           .addLast(new ServerHandler(processor))
       }
     }).childOption(ChannelOption.TCP_NODELAY, Boolean.box(true))
-      .childOption(ChannelOption.SO_KEEPALIVE, Boolean.box(true))
-      .bind(node.host, node.port)
-      .syncUninterruptibly
+    .childOption(ChannelOption.SO_KEEPALIVE, Boolean.box(true))
+  override def init(): ChannelFuture = {
+      bootstrap.bind()
   }
 
   override def shutdown(): Unit = {
-    if (bossGroup != null) {
-      bossGroup.shutdownGracefully()
-      bossGroup = null
-    }
-
-    if (workerGroup != null) {
-      workerGroup.shutdownGracefully()
-      workerGroup = null
-    }
+    bossGroup.shutdownGracefully()
+    workerGroup.shutdownGracefully()
   }
 }

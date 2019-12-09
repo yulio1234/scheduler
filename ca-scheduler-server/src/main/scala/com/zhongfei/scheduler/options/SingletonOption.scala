@@ -4,7 +4,6 @@ import com.zhongfei.scheduler.Option
 import com.zhongfei.scheduler.transport.Node
 
 import scala.concurrent.duration._
-import scala.concurrent.duration.FiniteDuration
 
 /**
  * 配置文件
