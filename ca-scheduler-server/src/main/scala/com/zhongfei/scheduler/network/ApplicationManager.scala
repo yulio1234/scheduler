@@ -11,7 +11,7 @@ object ApplicationManager{
   trait Event
   //应用组关闭事件
   case class GroupTerminated(appGroupName:String) extends Command
-  def apply(option:SingletonOption,reply:ActorRef[CoreDispatcher.Command]): Behavior[Command] = Behaviors.setup(context => new ApplicationManager(option,context).manage(Map.empty))
+  def apply(option:SingletonOption): Behavior[Command] = Behaviors.setup(context => new ApplicationManager(option,context).manage(Map.empty))
 }
 /**
  * 应用管理器

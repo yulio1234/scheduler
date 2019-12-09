@@ -28,7 +28,7 @@ object CoreDispatcher {
  */
 private class CoreDispatcher(option:SingletonOption, context:ActorContext[Command])  {
   //创建应用管理者
-  val applicationManager = context.spawn(ApplicationManager(option,context.self),"applicationManager")
+  val applicationManager = context.spawn(ApplicationManager(option),"applicationManager")
 
   // TODO:  进行查询数据保存
   def process(): Behavior[Command] = Behaviors.receiveMessage[Command]{message => {

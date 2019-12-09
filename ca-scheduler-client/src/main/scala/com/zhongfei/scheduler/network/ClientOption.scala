@@ -1,5 +1,5 @@
 package com.zhongfei.scheduler.network
-
-class ClientOption() {
+import com.zhongfei.scheduler.Option
+class ClientOption() extends Option{
 
 }

@@ -46,7 +46,7 @@ private class ApplicationDispatcher(option:SingletonOption, peer: Peer, timers: 
       case Unregistered(actionId) =>
         val response = Response(actionId = actionId)
         //创建一个临时通讯对象，进行通讯
-        val transfer = context.spawnAnonymous(NettyTransfer(peer.channel, option.transferRetryCount, option.transferRetryInterval,true))
+        val transfer = context.spawnAnonymous(NettyTransfer(peer.channel, option.transferRetryCount, option.transferRetryInterval))
         transfer ! WrappedResponse(response)
         context.log.info(s"应用取消注册完成，关闭actor，actionId=$actionId")
         Behaviors.stopped

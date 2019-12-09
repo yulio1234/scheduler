@@ -11,6 +11,12 @@ object Dispatcher{
   case class ConnectionCompleted(peer: Peer) extends Command
   case class ProtocolCommand(protocol: Protocol) extends Command
 }
+
+/**
+ * 客户端分发器负责分发请求
+ * @param node
+ * @param context
+ */
 class Dispatcher(node:Node, context:ActorContext[Command]) {
   def process():Behavior[Command] = Behaviors.receiveMessage{ message =>
     message match {

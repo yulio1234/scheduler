@@ -14,7 +14,7 @@ import io.netty.channel.{ChannelFuture, ChannelInitializer, ChannelOption}
 class ClientService(host:String, port:Int,dispatcher:ActorRef[Command]) extends Lifecycle with Logging{
   private var nioEventLoopGroup:NioEventLoopGroup = null
 
-  override def init(): Unit = {
+override def init(): Unit = {
     nioEventLoopGroup = new NioEventLoopGroup()
     val bootstrap = new Bootstrap
     bootstrap.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 2000)

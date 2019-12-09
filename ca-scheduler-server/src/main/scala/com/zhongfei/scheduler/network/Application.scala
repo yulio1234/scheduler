@@ -38,7 +38,7 @@ private class Application(option:SingletonOption,peer: Peer, timers: TimerSchedu
         //接收并处理心跳请求,单机的
       case HeartBeat(actionId, appName, peer) =>
         //发送心跳回复
-        send(WrappedResponse(Response(actionId = actionId)),false)
+        send(WrappedResponse(Response(actionId = actionId)))
         handle(Deadline.now.time)
         //如果是注销请求，就关闭应用
       case Unregister(actionId, _, _,reply) =>
@@ -57,8 +57,8 @@ private class Application(option:SingletonOption,peer: Peer, timers: TimerSchedu
       case ChannelClose => Behaviors.stopped
     }
   }}
-  def send(wrappedResponse: WrappedResponse,closeChannel:Boolean): Unit ={
-    val transfer : ActorRef[NettyTransfer.Command] = context.spawn(NettyTransfer(peer.channel, option.transferRetryCount, option.transferRetryInterval,true), s"application-${peer.uri()}-transfer")
+  def send(wrappedResponse: WrappedResponse): Unit ={
+    val transfer : ActorRef[NettyTransfer.Command] = context.spawn(NettyTransfer(peer.channel, option.transferRetryCount, option.transferRetryInterval), s"application-${peer.uri()}-transfer")
     transfer ! wrappedResponse
   }
 }
