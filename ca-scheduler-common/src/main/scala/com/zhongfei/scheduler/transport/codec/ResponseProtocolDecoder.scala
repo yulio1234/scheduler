@@ -6,4 +6,4 @@ import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.{Request, Res
  * 处理响应协议的解码器
  * @tparam U
  */
-abstract class ResponseProtocolDecoder[U,C] extends AbstractProtocolDecoder[Response,U,C]
+abstract class ResponseProtocolDecoder[U<:C,C] extends AbstractProtocolDecoder[Response,U,C]

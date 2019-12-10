@@ -2,6 +2,7 @@ package com.zhongfei.scheduler.network
 
 import java.net.InetSocketAddress
 
+import com.zhongfei.scheduler.network.codec.RequestProtocolHandler
 import com.zhongfei.scheduler.transport.Node
 import com.zhongfei.scheduler.transport.codec.{SchedulerProtocolDecoder, SchedulerProtocolEncoder}
 import com.zhongfei.scheduler.utils.Lifecycle
@@ -11,7 +12,7 @@ import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.channel.{ChannelFuture, ChannelInitializer, ChannelOption}
 
-class NettyServer(node:Node) extends Lifecycle[ChannelFuture,Unit]{
+class NettyServer(node:Node,requestProtocolHandler:RequestProtocolHandler) extends Lifecycle[ChannelFuture,Unit]{
   private val bossGroup: NioEventLoopGroup = new NioEventLoopGroup(1)
   private val workerGroup:NioEventLoopGroup = new NioEventLoopGroup(Runtime.getRuntime.availableProcessors() * 2)
   private val bootstrap = new ServerBootstrap
@@ -24,7 +25,7 @@ class NettyServer(node:Node) extends Lifecycle[ChannelFuture,Unit]{
         socketChannel.pipeline
           .addLast(new SchedulerProtocolDecoder)
           .addLast(new SchedulerProtocolEncoder)
-          .addLast(new RequestHandler)
+          .addLast(new RequestHandler(requestProtocolHandler))
           .addLast(new ResponseHandler)
       }
     }).childOption(ChannelOption.TCP_NODELAY, Boolean.box(true))

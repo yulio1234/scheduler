@@ -1,1 +1,9 @@
 /ca-scheduler-server/scala-logging.log
+/.idea/$PRODUCT_WORKSPACE_FILE$
+/.idea/.gitignore
+/.idea/gradle.xml
+/.idea/misc.xml
+/.idea/sbt.xml
+/.idea/scala_compiler.xml
+/.idea/vcs.xml
+/.idea/workspace.xml

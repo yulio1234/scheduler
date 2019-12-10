@@ -6,23 +6,32 @@ import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.Protocol
 
 /**
  * 抽象编码处理器
- * @tparam P 可执行的消息对象
- * @tparam U 返回的消息类型
- * @tparam C actor可执行的命令对象
+ * @tparam P 可解析的协议消息，现阶段为Request和Response
+ * @tparam U 返回的消息类型，用于给actor发送的actor内部子协议
+ * @tparam C actor内部的内部协议父类，用于接收所有子协议
  */
-abstract class AbstractProtocolDecoder[P <: Protocol,U <: C,C] extends Decoder[P,U] with Command[P,C] {
-  def execute(protocol: P,actor:ActorRef[C],peer:Peer): Unit ={
-    val command = decode(protocol,peer)
-    if(actor == null){
-      throw new RuntimeException("actor 为空")
-    }
-    actor ! command
+abstract class AbstractProtocolDecoder[P<:Protocol,U <: C,C] extends Decoder[P,U] with Command[P,C] {
+
+  /**
+   * 将外部协议，转换为actor可以执行的子协议
+   * @param protocol
+   * @param actor
+   * @param peer
+   */
+  override def execute(protocol: P, actor: ActorRef[C], peer: Peer): Unit = {
+      val command = decode(protocol,peer)
+      if(actor == null){
+        throw new RuntimeException("actor 为空")
+      }
+      actor ! command
+
   }
+
   /**
    * 执行节码操作
    *
    * @param msg 需要节码的消息
-   * @return 返回节码后的对象
+   * @return 返回解码后的对象
    */
   override def decode(msg: P,peer: Peer):U
 }

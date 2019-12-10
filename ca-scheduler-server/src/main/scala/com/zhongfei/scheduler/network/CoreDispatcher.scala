@@ -6,7 +6,7 @@ import com.zhongfei.scheduler.command.SchedulerCommand
 import com.zhongfei.scheduler.network.CoreDispatcher.{Command, ProtocolCommand}
 import com.zhongfei.scheduler.options.SingletonOption
 import com.zhongfei.scheduler.transport.Peer
-import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.Protocol
+import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.{Protocol, Request}
 
 /**
  * 调度处理器处理器
@@ -34,6 +34,9 @@ private class CoreDispatcher(option:SingletonOption, context:ActorContext[Comman
   def process(): Behavior[Command] = Behaviors.receiveMessage[Command]{message => {
     message match {
       case command: ProtocolCommand =>
+        command.protocol match {
+          case request : Request =>
+        }
         //创建应用处理器
         context.log.info("接收到命令请求")
         val applicationProcessor = context.spawnAnonymous(ApplicationDispatcher(option,command.peer,context.self,applicationManager))
@@ -41,4 +44,5 @@ private class CoreDispatcher(option:SingletonOption, context:ActorContext[Comman
         Behaviors.same
     }
   }}
+
 }

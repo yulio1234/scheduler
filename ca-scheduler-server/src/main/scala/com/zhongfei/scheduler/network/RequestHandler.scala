@@ -1,5 +1,6 @@
 package com.zhongfei.scheduler.network
 
+import com.zhongfei.scheduler.network.codec.RequestProtocolHandler
 import com.zhongfei.scheduler.transport.Peer
 import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.Request
 import com.zhongfei.scheduler.utils.{Logging, RemotingUtil}
@@ -9,7 +10,7 @@ import io.netty.channel.{Channel, ChannelHandlerContext, SimpleChannelInboundHan
  * 服务端处理器
  * @param
  */
-class RequestHandler() extends SimpleChannelInboundHandler[Request] with Logging{
+class RequestHandler(handler:RequestProtocolHandler) extends SimpleChannelInboundHandler[Request] with Logging{
 
 
   override def channelActive(ctx: ChannelHandlerContext): Unit = {
@@ -31,10 +32,9 @@ class RequestHandler() extends SimpleChannelInboundHandler[Request] with Logging
 
 
   override def channelRead0(ctx: ChannelHandlerContext, msg: Request): Unit = {
-    val peer:Peer = createPeer(ctx.channel())
-
-    info(s"读取到客户端数据，$Peer")
     info(s"读取到消息$msg")
+    //处理请求协议
+    handler.handle(msg,ctx.channel())
   }
 
 

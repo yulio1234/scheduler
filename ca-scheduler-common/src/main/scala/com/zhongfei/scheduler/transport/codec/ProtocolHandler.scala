@@ -3,11 +3,12 @@ package com.zhongfei.scheduler.transport.codec
 import io.netty.channel.Channel
 
 /**
- *
- * @tparam P 可执行的消息对象
+ * 协议处理器抽象类
+ * @tparam P
+ * @tparam C
  */
 abstract class ProtocolHandler[P,C] {
-  var map:Map[Byte,Command[P,C]] = Map.empty
+  var map:Map[Int,Command[P,C]] = Map.empty
 
   /**
    * 处理消息
@@ -21,7 +22,7 @@ abstract class ProtocolHandler[P,C] {
    * @param id
    * @param command
    */
-  def registerCommand(id:Byte,command: Command[P,C])={
+  def registerCommand(id:Int,command: Command[P,C])={
     map += (id->command)
   }
 
