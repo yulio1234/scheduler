@@ -21,7 +21,7 @@ class DispatchProcessorSpec extends ScalaTestWithActorTestKit with WordSpecLike 
         Thread.sleep(10000)
       }
       "测试netty服务端" in{
-        val server = new NettyServer(node,dispatcher)
+        val server = new NettyServer(node)
         server.init().addListener((future:ChannelFuture)=>{
           println(future.isSuccess)
         })

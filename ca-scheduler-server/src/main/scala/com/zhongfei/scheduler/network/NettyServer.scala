@@ -2,7 +2,6 @@ package com.zhongfei.scheduler.network
 
 import java.net.InetSocketAddress
 
-import akka.actor.typed.ActorRef
 import com.zhongfei.scheduler.transport.Node
 import com.zhongfei.scheduler.transport.codec.{SchedulerProtocolDecoder, SchedulerProtocolEncoder}
 import com.zhongfei.scheduler.utils.Lifecycle
@@ -12,20 +11,21 @@ import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.channel.{ChannelFuture, ChannelInitializer, ChannelOption}
 
-class NettyServer(host:String,port:Int,processor: ActorRef[CoreDispatcher.Command]) extends Lifecycle[ChannelFuture,Unit]{
+class NettyServer(node:Node) extends Lifecycle[ChannelFuture,Unit]{
   private val bossGroup: NioEventLoopGroup = new NioEventLoopGroup(1)
   private val workerGroup:NioEventLoopGroup = new NioEventLoopGroup(Runtime.getRuntime.availableProcessors() * 2)
   private val bootstrap = new ServerBootstrap
   bootstrap.group(bossGroup, workerGroup)
     .channel(classOf[NioServerSocketChannel])
-    .localAddress(new InetSocketAddress(host,port))
+    .localAddress(new InetSocketAddress(node.host,node.port))
     .childHandler(new ChannelInitializer[SocketChannel]() {
       @throws[Exception]
       override protected def initChannel(socketChannel: SocketChannel): Unit = {
         socketChannel.pipeline
           .addLast(new SchedulerProtocolDecoder)
           .addLast(new SchedulerProtocolEncoder)
-          .addLast(new ServerHandler(processor))
+          .addLast(new RequestHandler)
+          .addLast(new ResponseHandler)
       }
     }).childOption(ChannelOption.TCP_NODELAY, Boolean.box(true))
     .childOption(ChannelOption.SO_KEEPALIVE, Boolean.box(true))
