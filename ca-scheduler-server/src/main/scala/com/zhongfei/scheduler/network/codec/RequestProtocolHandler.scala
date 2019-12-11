@@ -1,7 +1,7 @@
 package com.zhongfei.scheduler.network.codec
 
 import akka.actor.typed.ActorRef
-import com.zhongfei.scheduler.network.CoreDispatcher.Command
+import com.zhongfei.scheduler.network.ServerDispatcher.Command
 import com.zhongfei.scheduler.transport.{Peer, codec}
 import com.zhongfei.scheduler.transport.codec.ProtocolHandler
 import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.Request

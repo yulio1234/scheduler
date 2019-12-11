@@ -22,7 +22,7 @@ private class ApplicationGroup(option:SingletonOption,context:ActorContext[Appli
   def handle(appMap:Map[String,ActorRef[Application.Command]]):Behavior[ApplicationGroup.Command] = Behaviors.receiveMessage[ApplicationGroup.Command] { message => {
     message match {
         //处理应用注册消息
-      case command @ HeartBeat(_, _ , peer) =>
+      case command @ HeartBeat(_, _ , peer,_) =>
         //检查是否由存在的应用，如果有就返回成功，没有就创建一个
         val uri:String = peer.uri()
         appMap.get(uri) match {

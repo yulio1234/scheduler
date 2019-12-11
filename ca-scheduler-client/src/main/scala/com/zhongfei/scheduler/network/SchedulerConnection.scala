@@ -14,6 +14,7 @@ import scala.concurrent.duration.{Deadline, FiniteDuration}
 object SchedulerConnection{
   trait Command
   case object SendHeatBeat extends Command
+  case object Check
   def apply(option: ClientOption,peer: Peer): Behavior[Command] = Behaviors.setup{context => Behaviors.withTimers{timers => new SchedulerConnection(option,peer,timers,context).handle(Deadline.now.time)}}
 }
 

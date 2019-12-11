@@ -14,5 +14,5 @@ trait Decoder[P,U] {
    * @param msg 需要节码的消息
    * @return 返回节码后的对象
    */
-  def decode(msg:P,peer: Peer):U
+  def decode(msg:P,peer: Peer):Option[U]
 }

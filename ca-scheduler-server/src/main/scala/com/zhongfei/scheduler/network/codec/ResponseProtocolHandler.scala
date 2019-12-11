@@ -1,6 +1,6 @@
 package com.zhongfei.scheduler.network.codec
 
-import com.zhongfei.scheduler.network.CoreDispatcher.Command
+import com.zhongfei.scheduler.network.ServerDispatcher.Command
 import com.zhongfei.scheduler.transport.codec.ProtocolHandler
 import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.{Request, Response}
 import io.netty.channel.Channel

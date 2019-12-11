@@ -38,7 +38,9 @@ class SchedulerConnectionManager(option: ClientOption,context: ActorContext[Comm
             context.watchWith(server,ServerTerminated(peer.uri()))
             handle(serverMap + (peer.uri() -> server))
         }
-
+        //注销服务
+      case ServerTerminated(serverKey) =>
+        handle(serverMap - serverKey)
     }
   }
 }

@@ -2,12 +2,10 @@ package com.zhongfei.scheduler.network
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
-import com.zhongfei.scheduler.command.SchedulerCommand.{HeartBeat, Unregister, Unregistered}
+import com.zhongfei.scheduler.command.SchedulerCommand.{HeartBeat, HeartBeaten, Unregister, Unregistered}
 import com.zhongfei.scheduler.network.Application.{ChannelClose, CheckHeatBeatTime, Command}
 import com.zhongfei.scheduler.options.SingletonOption
-import com.zhongfei.scheduler.transport.NettyTransfer.WrappedResponse
-import com.zhongfei.scheduler.transport.{NettyTransfer, Peer}
-import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.Response
+import com.zhongfei.scheduler.transport.Peer
 import io.netty.channel.ChannelFuture
 
 import scala.concurrent.duration._
@@ -35,10 +33,9 @@ private class Application(option:SingletonOption,peer: Peer, timers: TimerSchedu
 
   private def handle(lastedHeartBeatTime:FiniteDuration): Behavior[Application.Command] = Behaviors.receiveMessage{message =>{
     message match {
-        //接收并处理心跳请求,单机的
-      case HeartBeat(actionId, appName, peer) =>
-        //发送心跳回复
-        send(WrappedResponse(Response(actionId = actionId)))
+        //接收并处理心跳请求,单机的不用回复地址
+      case HeartBeat(actionId, _, _,replyTo) =>
+        replyTo ! HeartBeaten(actionId,None)
         handle(Deadline.now.time)
         //如果是注销请求，就关闭应用
       case Unregister(actionId, _, _,reply) =>
@@ -57,8 +54,4 @@ private class Application(option:SingletonOption,peer: Peer, timers: TimerSchedu
       case ChannelClose => Behaviors.stopped
     }
   }}
-  def send(wrappedResponse: WrappedResponse): Unit ={
-    val transfer : ActorRef[NettyTransfer.Command] = context.spawn(NettyTransfer(peer.channel, option.transferRetryCount, option.transferRetryInterval), s"application-${peer.uri()}-transfer")
-    transfer ! wrappedResponse
-  }
 }

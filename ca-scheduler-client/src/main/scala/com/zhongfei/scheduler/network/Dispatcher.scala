@@ -9,7 +9,7 @@ import com.zhongfei.scheduler.transport.{Node, Peer}
 object Dispatcher{
   trait Command
   case class ConnectionCompleted(peer: Peer) extends Command
-  case class ProtocolCommand(protocol: Protocol) extends Command
+
 }
 
 /**
