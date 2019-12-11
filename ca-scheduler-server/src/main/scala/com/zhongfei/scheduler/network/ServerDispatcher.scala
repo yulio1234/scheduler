@@ -1,14 +1,13 @@
 package com.zhongfei.scheduler.network
 
-import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.{ActorRef, Behavior}
 import com.zhongfei.scheduler.command.SchedulerCommand
 import com.zhongfei.scheduler.command.SchedulerCommand.{HeartBeat, Unregister}
 import com.zhongfei.scheduler.network.ApplicationDispatcher.Event
-import com.zhongfei.scheduler.network.ServerDispatcher.{Command, ProtocolCommand}
+import com.zhongfei.scheduler.network.ServerDispatcher.Command
 import com.zhongfei.scheduler.options.SingletonOption
 import com.zhongfei.scheduler.transport.Peer
-import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.{Protocol, Request}
 
 /**
  * 调度处理器处理器
@@ -18,7 +17,6 @@ object ServerDispatcher {
   trait Command extends SchedulerCommand.Command
 
   //与应用通讯的消息的消息
-  final case class ProtocolCommand(peer: Peer, protocol: Protocol) extends Command with ApplicationDispatcher.Command
   def apply(option: SingletonOption): Behavior[Command] = Behaviors.setup{ context => new ServerDispatcher(option,context).process()}
 }
 

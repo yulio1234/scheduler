@@ -16,7 +16,8 @@ class UnregisterDecoder extends RequestProtocolDecoder[Unregister,Command] with 
    */
   override def decode(msg: SchedulerProtocol.Request, peer: Peer): Option[Unregister] = {
     if (msg.length > 0) {
-      Some(Unregister(actionId = msg.actionId,appName = new String(msg.context),peer,null))
+      debug(s"处理取消注册请求：$msg,对等端：$Peer")
+      Some(Unregister(actionId = msg.actionId,appName = new String(msg.content),peer,null))
     }else{
       None
     }

@@ -15,7 +15,7 @@ class RequestHandler(handler:RequestProtocolHandler) extends SimpleChannelInboun
 
   override def channelActive(ctx: ChannelHandlerContext): Unit = {
     val peer = createPeer(ctx.channel())
-    info(s"链接已经活跃,$peer")
+    debug(s"链接已经活跃,$peer")
     super.channelActive(ctx)
   }
 
@@ -26,13 +26,13 @@ class RequestHandler(handler:RequestProtocolHandler) extends SimpleChannelInboun
    */
   override def channelInactive(ctx: ChannelHandlerContext): Unit = {
     val peer = createPeer(ctx.channel())
-    info(s"链接已经断开，$peer")
+    debug(s"链接已经断开，$peer")
     super.channelInactive(ctx)
   }
 
 
   override def channelRead0(ctx: ChannelHandlerContext, msg: Request): Unit = {
-    info(s"读取到消息$msg")
+    debug(s"读取到消息$msg")
     //处理请求协议
     handler.handle(msg,ctx.channel())
   }

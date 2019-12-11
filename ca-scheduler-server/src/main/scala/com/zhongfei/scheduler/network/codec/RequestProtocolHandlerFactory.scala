@@ -14,6 +14,7 @@ object RequestProtocolHandlerFactory extends ProtocolHandlerFactory{
     val handler = new RequestProtocolHandler(actor)
     //注册心跳解码处理器
     handler.registerCommand(ActionTypeEnum.HeartBeat.id,new HeartBeatDecoder)
+    handler.registerCommand(ActionTypeEnum.Unregister.id,new UnregisterDecoder)
     handler
   }
 

@@ -18,7 +18,7 @@ object SchedulerProtocol{
                      timestamp:Long=System.currentTimeMillis(),
                      expire:Long = -1,
                      length:Short = -1,
-                     context:Array[Byte] = null) extends Protocol
+                     content:Array[Byte] = null) extends Protocol
   //响应协议
   case class Response(magic:Byte=magic,
                       version:Byte=version,

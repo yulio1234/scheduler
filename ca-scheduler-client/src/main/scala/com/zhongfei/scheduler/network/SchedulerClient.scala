@@ -3,7 +3,7 @@ package com.zhongfei.scheduler.network
 import java.net.InetSocketAddress
 
 import akka.actor.typed.ActorRef
-import com.zhongfei.scheduler.network.Dispatcher.Command
+import com.zhongfei.scheduler.network.SchedulerConnection.Message
 import com.zhongfei.scheduler.transport.{Node, Peer}
 import com.zhongfei.scheduler.transport.codec.{SchedulerProtocolDecoder, SchedulerProtocolEncoder}
 import com.zhongfei.scheduler.utils.{Lifecycle, Logging}
@@ -14,7 +14,7 @@ import io.netty.channel.socket.nio.NioSocketChannel
 import io.netty.channel.{ChannelFuture, ChannelInitializer, ChannelOption}
 import io.netty.util.concurrent.{Future, Promise}
 
-class SchedulerClient(node:Node, dispatcher: ActorRef[Command]) extends Lifecycle[Future[Peer],Unit ] with Logging {
+class SchedulerClient(node:Node, dispatcher: ActorRef[Message]) extends Lifecycle[Future[Peer],Unit ] with Logging {
   private val nioEventLoopGroup: NioEventLoopGroup = new NioEventLoopGroup()
   private val bootstrap = new Bootstrap
   bootstrap.option(ChannelOption.TCP_NODELAY, Boolean.box(true))
