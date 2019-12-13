@@ -5,6 +5,7 @@ import akka.actor.typed.{ActorRef, Behavior}
 import com.zhongfei.scheduler.network.SchedulerConnection.Initialize
 import com.zhongfei.scheduler.network.SchedulerConnectionManager._
 import com.zhongfei.scheduler.transport.Node
+import com.zhongfei.scheduler.utils.Lifecycle
 
 object SchedulerConnectionManager {
 
@@ -38,7 +39,7 @@ object SchedulerConnectionManager {
  * @param option
  * @param context
  */
-class SchedulerConnectionManager(option: ClientOption, context: ActorContext[Message]) {
+class SchedulerConnectionManager(option: ClientOption, context: ActorContext[Message]) extends Lifecycle[Unit,Unit]{
   /**
    * 下线状态
    *
@@ -105,14 +106,16 @@ class SchedulerConnectionManager(option: ClientOption, context: ActorContext[Mes
   }
 
   /**
-   * 每次心跳服务器返回可以用服务列表，比较可以服务列表和在线服务列表，如果有不在线的，就更新为最新的，并尝试链接。
-   * 至于服务器返回的在线列表是否一致，服务器采用共识算法（quorum）保证每次数据返回的正确性
-   *
-   * @param waitOnlineServer
+   * 尝试连接服务器
+   * @param node
    */
   def tryConnect(node: Node): Unit = {
     val connection = context.spawn(SchedulerConnection(option, node, context.self), "server-" + node.uri())
     context.watchWith(connection, ServerTerminated(node.uri()))
     connection ! Initialize
   }
+
+  override def init(): Unit = ???
+
+  override def shutdown(): Unit = ???
 }
