@@ -9,7 +9,7 @@ import org.scalatest.WordSpecLike
 class SchedulerClientTSpec extends ScalaTestWithActorTestKit with WordSpecLike  {
   "测试netty客户端" when{
     "发起连接" should{
-      val actor = createTestProbe[Dispatcher.Command].ref
+      val actor = createTestProbe[SchedulerConnection.Message].ref
       val client = new SchedulerClient(Node("127.0.0.1", 2222), actor)
       val peer = client.init().get()
       val bytes = "test-client".getBytes
