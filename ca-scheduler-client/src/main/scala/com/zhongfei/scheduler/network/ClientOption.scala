@@ -10,8 +10,10 @@ import scala.concurrent.duration._
  * @param transferRetryCount 传输数据重试次数
  * @param transferRetryInterval 传输数据重试间隔
  */
-case class ClientOption(sendHeartBeatInterval: FiniteDuration = 8.seconds,
+case class ClientOption(sendHeartBeatInterval: FiniteDuration = 5.seconds,
                         checkHeartBeatOnCloseInterval:FiniteDuration = 10.seconds,
                         transferRetryCount: Int = 3,
                         transferRetryInterval: FiniteDuration = 500.millis,
+                        iniTimout:FiniteDuration = 2000.millis,
+                        reconnectInterval:FiniteDuration = 3.millis
                        ) extends Option

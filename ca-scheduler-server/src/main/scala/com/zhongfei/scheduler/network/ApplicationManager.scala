@@ -18,8 +18,7 @@ object ApplicationManager{
  * @param context
  */
 private class ApplicationManager(option:SingletonOption,context:ActorContext[Command]){
-  private def manage(appGroupMap:Map[String,ActorRef[ApplicationGroup.Command]]): Behavior[Command] = Behaviors.receiveMessage[Command]{message=>
-    message match {
+  private def manage(appGroupMap:Map[String,ActorRef[ApplicationGroup.Command]]): Behavior[Command] = Behaviors.receiveMessage[Command]{
       case command @ HeartBeat(_, appName,_,_) =>
         appGroupMap.get(appName) match {
             //如果有应用组就转发消息
@@ -50,6 +49,5 @@ private class ApplicationManager(option:SingletonOption,context:ActorContext[Com
       case GroupTerminated(appGroupName) =>
         context.log.info("接收到应用组注销消息：appGroupName=",appGroupName)
         manage(appGroupMap - appGroupName)
-    }
   }
 }
