@@ -14,12 +14,12 @@ class ProtocolHandlerSpec extends ScalaTestWithActorTestKit with WordSpecLike {
       val array = "test-application".getBytes
       "处理心跳请求"in {
         val request = Request(actionId = 1, actionType = ActionTypeEnum.HeartBeat.id.toByte,length = array.length.toShort,content = array)
-        requestProtocolHandler.handle(request,null)
+        requestProtocolHandler.doHandler(request,null)
         actor.expectMessageType[HeartBeat]
       }
       "处理取消注册请求" in {
         val request = Request(actionId = 1, actionType = ActionTypeEnum.Unregister.id.toByte, length = array.length.toShort, content = array)
-        requestProtocolHandler.handle(request,channel = null)
+        requestProtocolHandler.doHandler(request,channel = null)
         actor.expectMessageType[Unregister]
       }
     }

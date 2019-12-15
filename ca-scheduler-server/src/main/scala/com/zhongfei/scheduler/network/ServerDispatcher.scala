@@ -5,7 +5,7 @@ import akka.actor.typed.{ActorRef, Behavior}
 import com.zhongfei.scheduler.command.SchedulerCommand
 import com.zhongfei.scheduler.command.SchedulerCommand.{HeartBeat, Unregister}
 import com.zhongfei.scheduler.network.ApplicationDispatcher.Event
-import com.zhongfei.scheduler.network.ServerDispatcher.Command
+import com.zhongfei.scheduler.network.ServerDispatcher.{Command, Message}
 import com.zhongfei.scheduler.options.SingletonOption
 import com.zhongfei.scheduler.transport.Peer
 
@@ -13,23 +13,23 @@ import com.zhongfei.scheduler.transport.Peer
  * 调度处理器处理器
  */
 object ServerDispatcher {
-
-  trait Command extends SchedulerCommand.Command
-
+  trait Message
+  trait Command extends Message
+  trait Event extends Message
   //与应用通讯的消息的消息
-  def apply(option: SingletonOption): Behavior[Command] = Behaviors.setup{ context => new ServerDispatcher(option,context).process()}
+  def apply(option: SingletonOption): Behavior[Message] = Behaviors.setup{ context => new ServerDispatcher(option,context).process()}
 }
 
 /**
  * 全局消息处理器，负责分发各种消息
  * @param option
  */
-private class ServerDispatcher(option:SingletonOption, context:ActorContext[Command])  {
+private class ServerDispatcher(option:SingletonOption, context:ActorContext[Message])  {
   //创建应用管理者
   val applicationManager = context.spawn(ApplicationManager(option),"applicationManager")
 
   // TODO:  进行查询数据保存
-  def process(): Behavior[Command] = Behaviors.receiveMessage[Command]{message => {
+  def process(): Behavior[Message] = Behaviors.receiveMessage[Message]{message => {
     message match {
       case heartbeat @ HeartBeat(_, _, peer:Peer,_) =>
         val actorRef: ActorRef[Event] = buildExtra(message, peer)
@@ -43,7 +43,7 @@ private class ServerDispatcher(option:SingletonOption, context:ActorContext[Comm
         Behaviors.same
     }
   }}
-  def buildExtra(message:Command,peer: Peer): ActorRef[ApplicationDispatcher.Event] ={
+  def buildExtra(message:Message,peer: Peer): ActorRef[ApplicationDispatcher.Event] ={
     context.spawnAnonymous(ApplicationDispatcher(option, peer, message))
   }
 }

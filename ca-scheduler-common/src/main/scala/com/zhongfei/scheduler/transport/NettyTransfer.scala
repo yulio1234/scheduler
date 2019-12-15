@@ -48,7 +48,7 @@ class NettyTransfer(channel: Channel,
             //重试次数大于0就继续重试
             case n if (n > 0) =>
               context.log.error(s"当前重试次数剩余：$retryCount 次，进行重试")
-              timers.startSingleTimer(???, message, interval)
+              timers.startSingleTimer(message, message, interval)
             //如果重试次数不够了，就回复给发送者，并停止
             case _ => throw new NetworkTransferException(cause)
           }

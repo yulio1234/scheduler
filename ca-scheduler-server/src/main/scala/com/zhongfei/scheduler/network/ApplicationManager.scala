@@ -7,8 +7,9 @@ import com.zhongfei.scheduler.command.SchedulerCommand.{HeartBeat, Unregister, U
 import com.zhongfei.scheduler.network.ApplicationManager.{Command, GroupTerminated}
 import com.zhongfei.scheduler.options.SingletonOption
 object ApplicationManager{
-  trait Command extends SchedulerCommand.Command
-  trait Event
+  trait Message
+  trait Command extends Message
+  trait Event extends Message
   //应用组关闭事件
   case class GroupTerminated(appGroupName:String) extends Command
   def apply(option:SingletonOption): Behavior[Command] = Behaviors.setup(context => new ApplicationManager(option,context).manage(Map.empty))

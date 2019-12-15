@@ -8,9 +8,9 @@ import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.ActionTypeEnu
 /**
  * 请求协议处理器简单工厂
  */
-object RequestProtocolHandlerFactory extends ProtocolHandlerFactory{
+object RequestProtocolHandlerFactory extends ProtocolHandlerFactory[Command,RequestProtocolHandler]{
 
-  def create(actor:ActorRef[Command]): RequestProtocolHandler ={
+  override def create(actor:ActorRef[Command]): RequestProtocolHandler ={
     val handler = new RequestProtocolHandler(actor)
     //注册心跳解码处理器
     handler.registerCommand(ActionTypeEnum.HeartBeat.id,new HeartBeatDecoder)

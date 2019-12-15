@@ -1,5 +1,5 @@
 package com.zhongfei.scheduler.network
-
+import com.zhongfei.scheduler.network.codec.{RequestProtocolHandlerFactory, ResponseProtocolHandlerFactory}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
 import com.zhongfei.scheduler.network.SchedulerConnection.Initialize
@@ -21,15 +21,18 @@ object SchedulerConnectionManager {
   //连接服务完成
   case class Connected(serverKey: String, serverRef: ActorRef[SchedulerConnection.Command]) extends Command
 
-  //不可达命令
+  //服务端不可达
   case class ServerUnreachable(serverKey: String) extends Command with SchedulerConnection.Command
   case object ServerTerminate extends Command with SchedulerConnection.Command
   case class ServerTerminated(serverKey: String) extends Event
 
   case class ActiveServerList(hosts: Option[Set[Node]]) extends Event
   case class ServerActive(serverKey:String) extends Event
+
+  case object ServerManagerTerminate extends Command  
   def apply(option: ClientOption): Behavior[Message] = Behaviors.setup { context =>
-    new SchedulerConnectionManager(option, context).down()
+    val client = new SchedulerClient(RequestProtocolHandlerFactory.create(context.self), ResponseProtocolHandlerFactory.create(context.self))
+    new SchedulerConnectionManager(option, context).down(client)
   }
 }
 
@@ -45,14 +48,14 @@ class SchedulerConnectionManager(option: ClientOption, context: ActorContext[Mes
    *
    * @return
    */
-  def down(): Behavior[Message] = Behaviors.receiveMessage {
+  def down(schedulerClient: SchedulerClient): Behavior[Message] = Behaviors.receiveMessage {
         //连接服务端
     case Connects(nodes) =>
-      nodes.foreach(node => tryConnect(node))
-      Behaviors.same
+      nodes.foreach(node => tryConnect(node,schedulerClient))
+      down(schedulerClient)
       //如果有接收到服务端应答，就转换状态到上线
     case Connected(serverKey, serverRef) =>
-      up(Map.empty, Map.empty + (serverKey -> serverRef))
+      up(Map.empty, Map.empty + (serverKey -> serverRef),schedulerClient)
   }
 
   /**
@@ -62,10 +65,13 @@ class SchedulerConnectionManager(option: ClientOption, context: ActorContext[Mes
    * @param onlineServer
    * @return
    */
-  def up(waitOnlineServer: Map[String, ActorRef[SchedulerConnection.Command]], onlineServer: Map[String, ActorRef[SchedulerConnection.Command]]): Behavior[Message] = Behaviors.receiveMessage{
+  def up(waitOnlineServer: Map[String, ActorRef[SchedulerConnection.Command]],
+         onlineServer: Map[String, ActorRef[SchedulerConnection.Command]],
+           schedulerClient: SchedulerClient
+        ): Behavior[Message] = Behaviors.receiveMessage{
         //注册完成
     case Connected(serverKey,serverRef)=>
-      up(waitOnlineServer,onlineServer + (serverKey->serverRef))
+      up(waitOnlineServer,onlineServer + (serverKey->serverRef),schedulerClient)
     //活跃的服务
     case ActiveServerList(hosts) =>
       hosts match {
@@ -83,7 +89,7 @@ class SchedulerConnectionManager(option: ClientOption, context: ActorContext[Mes
           })
           //如果需要上线的服务，不在等待上线的服务里，就上线
           val doOnline = waitOnline -- waitOnlineServer.keySet
-          doOnline.foreach(uri => tryConnect(Node.createByUri(uri)))
+          doOnline.foreach(uri => tryConnect(Node.createByUri(uri),schedulerClient))
           //
           val allDoOffline = waitOnlineServer.keySet -- (doOnline ++ waitOnline)
           allDoOffline.foreach(key =>{
@@ -95,27 +101,39 @@ class SchedulerConnectionManager(option: ClientOption, context: ActorContext[Mes
     //接收服务发来的不可达消息
     case ServerUnreachable(serverKey) =>
       //将不可达的服务转移到等待上线中
-      up(waitOnlineServer + (serverKey -> onlineServer(serverKey)),onlineServer - serverKey)
+      up(waitOnlineServer + (serverKey -> onlineServer(serverKey)),onlineServer - serverKey,schedulerClient)
       //服务重新连上线了
     case ServerActive(serverKey) =>
-      up(waitOnlineServer - serverKey,onlineServer + (serverKey -> waitOnlineServer(serverKey)))
+      up(waitOnlineServer - serverKey,onlineServer + (serverKey -> waitOnlineServer(serverKey)),schedulerClient)
     case ServerTerminated(serverKey) =>
       //注销已经关闭的服务
-      up(waitOnlineServer -serverKey, onlineServer - serverKey)
+      up(waitOnlineServer -serverKey, onlineServer - serverKey,schedulerClient)
+    case ServerManagerTerminate =>
+      // TODO: 管理器关闭 
+      down(null)
 
   }
+
+
 
   /**
    * 尝试连接服务器
    * @param node
    */
-  def tryConnect(node: Node): Unit = {
-    val connection = context.spawn(SchedulerConnection(option, node, context.self), "server-" + node.uri())
+  def tryConnect(node: Node,schedulerClient: SchedulerClient): Unit = {
+    val connection = context.spawn(SchedulerConnection(option, node, context.self,schedulerClient), "server-" + node.uri())
     context.watchWith(connection, ServerTerminated(node.uri()))
     connection ! Initialize
   }
 
-  override def init(): Unit = ???
+  override def init(): Unit = {
 
-  override def shutdown(): Unit = ???
+  }
+
+  /**
+   * 给所有节点发送关闭消息
+   */
+  override def shutdown(): Unit = {
+
+  }
 }

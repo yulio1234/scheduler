@@ -13,27 +13,31 @@ import SchedulerProtocol.Protocol
 class SchedulerProtocolEncoder extends MessageToByteEncoder[Protocol]{
   override def encode(ctx: ChannelHandlerContext, protocol: Protocol, out: ByteBuf): Unit = {
     protocol match {
-      case Request(magic, version, protocolType, actionId, actionType, timestamp, expire, length, content) =>
-        out.writeByte(magic)
-        out.writeByte(version)
-        out.writeByte(protocolType)
-        out.writeLong(actionId)
-        out.writeByte(actionType)
-        out.writeLong(timestamp)
-        out.writeLong(expire)
-        out.writeShort(length)
-        out.writeBytes(content)
-      case Response(magic, version, protocolType, actionId, success, errorCode, timestamp,length,content) =>
-        out.writeByte(magic)
-        out.writeByte(version)
-        out.writeByte(protocolType)
-        out.writeLong(actionId)
-        out.writeBoolean(success)
-        out.writeByte(errorCode)
-        out.writeLong(timestamp)
-        out.writeInt(length)
-        if(content != null){
-          out.writeBytes(content)
+      case request: Request =>
+        out.writeByte(request.magic)
+        out.writeByte(request.version)
+        out.writeByte(request.protocolType)
+        out.writeLong(request.actionId)
+        out.writeByte(request.actionType)
+        out.writeLong(request.timestamp)
+        out.writeLong(request.expire)
+        out.writeShort(request.length)
+        out.writeBytes(request.content)
+        out.writeInt(request.length)
+        if(request.content != null){
+          out.writeBytes(request.content)
+        }
+      case response :Response =>
+        out.writeByte(response.magic)
+        out.writeByte(response.version)
+        out.writeByte(response.protocolType)
+        out.writeLong(response.actionId)
+        out.writeBoolean(response.success)
+        out.writeByte(response.errorCode)
+        out.writeLong(response.timestamp)
+        out.writeInt(response.length)
+        if(response.content != null){
+          out.writeBytes(response.content)
         }
     }
   }

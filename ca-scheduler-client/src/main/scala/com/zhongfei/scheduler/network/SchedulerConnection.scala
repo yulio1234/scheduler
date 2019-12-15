@@ -4,6 +4,7 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
 import com.zhongfei.scheduler.network.SchedulerConnection._
 import com.zhongfei.scheduler.network.SchedulerConnectionManager.{Connected, ServerActive, ServerTerminate, Unreachable}
+import com.zhongfei.scheduler.network.codec.{RequestProtocolHandlerFactory, ResponseProtocolHandlerFactory}
 import com.zhongfei.scheduler.transport.NettyTransfer.WrappedRequest
 import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.{ActionTypeEnum, Request}
 import com.zhongfei.scheduler.transport.{NettyTransfer, Node, Peer}
@@ -22,7 +23,7 @@ object SchedulerConnection {
   trait Event extends Message
 
   //心跳事件响应
-  case class HeartBeaten(actionId: Long, hosts: Option[String]) extends Event
+  case class HeartBeaten(actionId: Long) extends Event
 
   case object SendHeatBeat extends Command
 
@@ -35,7 +36,7 @@ object SchedulerConnection {
   case object InitializeTimeout extends Command
 
   //初始化结果
-  case class Initialized(success: Boolean,peer: Peer) extends Event
+  case class Initialized(success: Boolean, peer: Peer) extends Event
 
   //重新连接
   case object Reconnect extends Command
@@ -49,10 +50,10 @@ object SchedulerConnection {
   //暂存数据
   case class Cache(commands: Queue[Command]) extends Data
 
-  def apply(option: ClientOption, node: Node, manager: ActorRef[SchedulerConnectionManager.Message]): Behavior[Message] =
+  def apply(option: ClientOption, node: Node, manager: ActorRef[SchedulerConnectionManager.Message],schedulerClient: SchedulerClient): Behavior[Message] =
     Behaviors.setup { context =>
       Behaviors.withTimers { timers =>
-        new SchedulerConnection(option, node, timers, manager, context).down()
+        new SchedulerConnection(option, node, timers, manager,schedulerClient, context).down()
       }
     }
 }
@@ -65,7 +66,7 @@ object SchedulerConnection {
  * @param timers
  * @param context
  */
-class SchedulerConnection(option: ClientOption, node: Node, timers: TimerScheduler[Message], manager: ActorRef[SchedulerConnectionManager.Message], context: ActorContext[Message]) {
+class SchedulerConnection(option: ClientOption, node: Node, timers: TimerScheduler[Message], manager: ActorRef[SchedulerConnectionManager.Message], client:SchedulerClient,context: ActorContext[Message]) {
 
   /**
    * 开始为下线状态
@@ -75,28 +76,30 @@ class SchedulerConnection(option: ClientOption, node: Node, timers: TimerSchedul
   def down(): Behavior[Message] = Behaviors.receiveMessage {
     //接收初始化消息,执行初始化
     case Initialize =>
+      context.log.debug("接收到初始化请求")
       //创建超时消息
       timers.startSingleTimer(InitializeTimeout, InitializeTimeout, option.iniTimout)
       val self = context.self
       //创建客户端
-      val client = new SchedulerClient(node, self)
-      client.init().addListener { (future: ChannelFuture) =>
+      client.createConnection(node).addListener { (future: ChannelFuture) =>
         //返回初始化结果
-        self ! Initialized(future.isSuccess,Peer(node.host,node.port,future.channel()))
+        context.log.debug("注册初始化响应监听")
+        self ! Initialized(future.isSuccess, Peer(node.host, node.port, future.channel()))
       }
       Behaviors.same
     //如果提前接收到了初始化结束请求
-    case Initialized(success,peer) =>
+    case Initialized(success, peer) =>
       timers.cancel(InitializeTimeout)
+      context.log.debug("客户端初始化结果："+success)
       if (success) {
         //成功上线后，定时发送心跳消息
         timers.startTimerWithFixedDelay(SendHeatBeat, SendHeatBeat, option.sendHeartBeatInterval)
         //定时检测是否在线
         timers.startTimerWithFixedDelay(CheckHeartBeatIntervalTimeout, CheckHeartBeatIntervalTimeout, option.checkHeartBeatOnCloseInterval)
         //并通知管理器服务已经上线
-        manager ! Connected(node.uri(),context.self)
+        manager ! Connected(node.uri(), context.self)
         //转移到上线状态
-        up(Deadline.now.time,peer)
+        up(Deadline.now.time, peer)
       } else {
         //如果没连接上不可达
         //告诉管理器不可达
@@ -105,7 +108,7 @@ class SchedulerConnection(option: ClientOption, node: Node, timers: TimerSchedul
         timers.startSingleTimer(Reconnect, Reconnect, option.reconnectInterval)
         Behaviors.same
       }
-      //如果创建一直没回应，也重连
+    //如果创建一直没回应，也重连
     case InitializeTimeout =>
       manager ! Unreachable(node.uri())
       context.self ! Initialize
@@ -116,15 +119,15 @@ class SchedulerConnection(option: ClientOption, node: Node, timers: TimerSchedul
     case ServerTerminate => Behaviors.stopped
   }
 
-  def up(lastedHeartBeatTime: FiniteDuration,peer: Peer): Behavior[Message] = Behaviors.receiveMessage {
+  def up(lastedHeartBeatTime: FiniteDuration, peer: Peer): Behavior[Message] = Behaviors.receiveMessage {
     //定时向服务器发送心跳请求
     case SendHeatBeat =>
-      sendHeartBeat(peer)
+      sendHeartBeat(peer, option.appName)
       Behaviors.same
     //收到心跳请求后，处理
-    case HeartBeaten(actionId, hosts: Option[String]) =>
+    case HeartBeaten(actionId) =>
       //将返回的服务器数据交给连接管理器处理
-      up(Deadline.now.time,peer)
+      up(Deadline.now.time, peer)
     //检查心跳超时
     case CheckHeartBeatIntervalTimeout =>
       //当前时间减去最后一次记录的时间如果大于时间间隔就将连接设置为不可达
@@ -135,34 +138,41 @@ class SchedulerConnection(option: ClientOption, node: Node, timers: TimerSchedul
       } else {
         Behaviors.same
       }
-    case ServerTerminate => Behaviors.stopped
+      //关闭链接
+    case ServerTerminate =>
+      peer.close()
+      Behaviors.stopped
   }
 
   /**
    * 不可达状态
+   *
    * @return
    */
   def unreachable(peer: Peer): Behavior[Message] = Behaviors.receiveMessage {
     //定时向服务器发送心跳请求
     case SendHeatBeat =>
-      sendHeartBeat(peer)
+      sendHeartBeat(peer, option.appName)
       Behaviors.same
-    case HeartBeaten(actionId, hosts: Option[String]) =>
+    case HeartBeaten(actionId) =>
       //将返回的服务器数据交给连接管理器处理
       manager ! ServerActive(node.uri())
-      up(Deadline.now.time,peer)
-    case ServerTerminate => Behaviors.stopped
+      up(Deadline.now.time, peer)
+    case ServerTerminate =>
+      peer.close()
+      Behaviors.stopped
   }
 
   /**
    * 将hosts转换为节点集合
+   *
    * @param hosts
    * @return
    */
-  implicit def node(hosts: Option[String]): Option[Set[Node]] ={
+  implicit def node(hosts: Option[String]): Option[Set[Node]] = {
     // TODO: 需要测试边缘情况，譬如只有一个server时
     hosts match {
-      case Some(value) =>{
+      case Some(value) => {
         val hosts = value.split(",")
         val nodes = hosts.collect(host => {
           val strings = host.split(":")
@@ -175,9 +185,9 @@ class SchedulerConnection(option: ClientOption, node: Node, timers: TimerSchedul
   }
 
 
-
-  def sendHeartBeat(peer: Peer): Unit = {
-        val transfer = context.spawnAnonymous(NettyTransfer(peer.channel,option.transferRetryCount,option.transferRetryInterval))
-        transfer ! WrappedRequest(Request(actionId = IDGenerator.next(),actionType = ActionTypeEnum.HeartBeat.id.toByte))
+  def sendHeartBeat(peer: Peer, appName: String): Unit = {
+    val transfer = context.spawnAnonymous(NettyTransfer(peer.channel, option.transferRetryCount, option.transferRetryInterval))
+    val bytes = appName.getBytes()
+    transfer ! WrappedRequest(Request(actionId = IDGenerator.next(), actionType = ActionTypeEnum.HeartBeat.id.toByte, length = bytes.length.toShort, content = bytes))
   }
 }

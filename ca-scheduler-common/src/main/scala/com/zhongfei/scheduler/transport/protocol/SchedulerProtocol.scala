@@ -8,27 +8,35 @@ import com.zhongfei.scheduler.Message
  */
 object SchedulerProtocol{
   //协议标记
-  trait Protocol extends Message
+  class Protocol(
+                  val magic:Byte=magic,
+                  val version:Byte=version,
+                  val protocolType:Byte,
+                  val actionId:Long,
+                  val actionType:Byte,
+                  val timestamp:Long,
+                  val length:Short = -1,
+                  val content:Array[Byte] = null
+                ) extends Message
   //请求协议
-  case class Request(magic:Byte=magic,
-                     version:Byte=version,
-                     protocolType:Byte=ProtocolTypeEnum.Request.id.toByte,
-                     actionId:Long,
-                     actionType:Byte,
-                     timestamp:Long=System.currentTimeMillis(),
-                     expire:Long = -1,
-                     length:Short = -1,
-                     content:Array[Byte] = null) extends Protocol
+  case class Request(
+                      override val actionId:Long,
+                      override val actionType:Byte,
+                      expire:Long = -1,
+                      override val timestamp:Long = System.currentTimeMillis(),
+                      override val length:Short = -1,
+                      override val content:Array[Byte] = null
+                     ) extends Protocol(protocolType = ProtocolTypeEnum.Request.id.toByte,actionId = actionId,actionType = actionType,timestamp = timestamp)
   //响应协议
-  case class Response(magic:Byte=magic,
-                      version:Byte=version,
-                      protocolType:Byte = ProtocolTypeEnum.Response.id.toByte,
-                      actionId:Long,success:Boolean=true,
-                      errorCode:Byte = -1,
-                      timestamp:Long = System.currentTimeMillis(),
-                      length:Int = -1,
-                      content:Array[Byte] = null
-                     ) extends Protocol
+  case class Response(
+                       override val actionId:Long,
+                       override val actionType:Byte,
+                       success:Boolean=true,
+                       errorCode:Byte = -1,
+                       override val timestamp:Long = System.currentTimeMillis(),
+                       override val length:Short = -1,
+                       override val content:Array[Byte] = null
+                     ) extends Protocol(protocolType = ProtocolTypeEnum.Response.id.toByte,actionId = actionId,actionType = actionType,timestamp = timestamp)
   //魔数
   val magic:Byte = 0x0079
   //版本号

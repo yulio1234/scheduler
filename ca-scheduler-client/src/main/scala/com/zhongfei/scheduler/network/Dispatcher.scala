@@ -3,7 +3,6 @@ package com.zhongfei.scheduler.network
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import com.zhongfei.scheduler.network.Dispatcher.{Command, ConnectionCompleted}
-import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.Protocol
 import com.zhongfei.scheduler.transport.{Node, Peer}
 
 object Dispatcher{

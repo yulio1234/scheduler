@@ -34,15 +34,19 @@ class SchedulerProtocolDecoder extends ByteToMessageDecoder{
           val length = in.readShort()
           val bytes = new Array[Byte](length)
           in.readBytes(bytes)
-          val request = Request(magic,version,protocolType,actionId,actionType,timestamp,expire,length,bytes)
+          val request = Request(actionId,actionType,expire,timestamp,length,bytes)
           out.add(request)
           //处理响应协议
         }else if(protocolType == protocl.ProtocolTypeEnum.Response.id){
           val actionId = in.readLong()
+          val actionType = in.readByte()
           val success = in.readBoolean()
           val errorByte = in.readByte()
           val timestamp = in.readLong()
-          val response = Response(magic,version,protocolType,actionId,success,errorByte,timestamp)
+          val length = in.readShort()
+          val bytes = new Array[Byte](length)
+          in.readBytes(bytes)
+          val response = Response(actionId,actionType ,success,errorByte,timestamp,length,bytes)
           out.add(response)
         }
       }
