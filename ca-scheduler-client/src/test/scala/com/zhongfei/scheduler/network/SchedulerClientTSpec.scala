@@ -9,7 +9,7 @@ import org.scalatest.WordSpecLike
 class SchedulerClientTSpec extends ScalaTestWithActorTestKit with WordSpecLike  {
   "测试netty客户端" when{
     "发起连接" should{
-      val actor = createTestProbe[SchedulerConnectionManager.Message].ref
+      val actor = createTestProbe[Dispatcher.Message].ref
       val requestProtocolHandler = RequestProtocolHandlerFactory.create(actor.ref)
       val responseProtocolHandler = ResponseProtocolHandlerFactory.create(actor.ref)
       val client = new SchedulerClient(requestProtocolHandler,responseProtocolHandler)
@@ -20,16 +20,16 @@ class SchedulerClientTSpec extends ScalaTestWithActorTestKit with WordSpecLike  
         channel.writeAndFlush(request).sync().addListener{(future:ChannelFuture)=>
           info(future.isSuccess.toString)
 
+          channel.close().sync()
         }
-        channel.close().sync()
       }
       "发起取消注册请求" in {
         val request = Request(actionId = 1, actionType = ActionTypeEnum.Unregister.id.toByte, length = bytes.length.toShort, content = bytes)
         channel.writeAndFlush(request).sync().addListener{(future:ChannelFuture)=>
           info(future.isSuccess.toString)
+          channel.close().sync()
 
         }
-        channel.close().sync()
       }
     }
   }

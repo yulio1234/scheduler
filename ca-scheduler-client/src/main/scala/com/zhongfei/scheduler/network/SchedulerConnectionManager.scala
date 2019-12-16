@@ -2,7 +2,6 @@ package com.zhongfei.scheduler.network
 import com.zhongfei.scheduler.network.codec.{RequestProtocolHandlerFactory, ResponseProtocolHandlerFactory}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import com.zhongfei.scheduler.network.Command.SchedulerCommand.HeartBeaten
 import com.zhongfei.scheduler.network.SchedulerConnection.Initialize
 import com.zhongfei.scheduler.network.SchedulerConnectionManager._
 import com.zhongfei.scheduler.transport.Node
@@ -31,9 +30,9 @@ object SchedulerConnectionManager {
   case class ServerActive(serverKey:String) extends Event
 
   case object ServerManagerTerminate extends Command  
-  def apply(option: ClientOption): Behavior[Message] = Behaviors.setup { context =>
-    val client = new SchedulerClient(RequestProtocolHandlerFactory.create(context.self), ResponseProtocolHandlerFactory.create(context.self))
-    new SchedulerConnectionManager(option, context).down(client)
+  def apply(option: ClientOption,dispatcher: ActorRef[Dispatcher.Message]): Behavior[Message] = Behaviors.setup { context =>
+    val client = new SchedulerClient(RequestProtocolHandlerFactory.create(dispatcher), ResponseProtocolHandlerFactory.create(dispatcher))
+    new SchedulerConnectionManager(option, dispatcher,context).down(client)
   }
 }
 
@@ -43,7 +42,7 @@ object SchedulerConnectionManager {
  * @param option
  * @param context
  */
-class SchedulerConnectionManager(option: ClientOption, context: ActorContext[Message]){
+class SchedulerConnectionManager(option: ClientOption, dispatcher: ActorRef[Dispatcher.Message],context: ActorContext[Message]){
   /**
    * 下线状态
    *
@@ -70,7 +69,7 @@ class SchedulerConnectionManager(option: ClientOption, context: ActorContext[Mes
          onlineServer: Map[String, ActorRef[SchedulerConnection.Command]],
            schedulerClient: SchedulerClient
         ): Behavior[Message] = Behaviors.receiveMessage{
-        //链接完成
+        //注册完成
     case Connected(serverKey,serverRef)=>
       up(waitOnlineServer,onlineServer + (serverKey->serverRef),schedulerClient)
     //活跃的服务
@@ -122,7 +121,7 @@ class SchedulerConnectionManager(option: ClientOption, context: ActorContext[Mes
    * @param node
    */
   def tryConnect(node: Node,schedulerClient: SchedulerClient): Unit = {
-    val connection = context.spawn(SchedulerConnection(option, node, context.self,schedulerClient), "server-" + node.uri())
+    val connection = context.spawn(SchedulerConnection(option, node, context.self,dispatcher,schedulerClient), "server-" + node.uri())
     context.watchWith(connection, ServerTerminated(node.uri()))
     connection ! Initialize
   }

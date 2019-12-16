@@ -1,5 +1,7 @@
 package com.zhongfei.scheduler.network
 
+import java.net.InetSocketAddress
+
 import com.zhongfei.scheduler.network.codec.{RequestProtocolHandler, ResponseProtocolHandler}
 import com.zhongfei.scheduler.transport.Node
 import com.zhongfei.scheduler.transport.codec.{SchedulerProtocolDecoder, SchedulerProtocolEncoder}
@@ -9,6 +11,7 @@ import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioSocketChannel
 import io.netty.channel.{ChannelFuture, ChannelInitializer, ChannelOption}
+import io.netty.handler.codec.{LengthFieldBasedFrameDecoder, LengthFieldPrepender}
 
 class SchedulerClient(requestProtocolHandler: RequestProtocolHandler,responseProtocolHandler: ResponseProtocolHandler) extends Logging {
   private val nioEventLoopGroup: NioEventLoopGroup = new NioEventLoopGroup()
@@ -21,16 +24,19 @@ class SchedulerClient(requestProtocolHandler: RequestProtocolHandler,responsePro
     @throws[Exception]
     override protected def initChannel(socketChannel: SocketChannel): Unit = {
       val pipeline = socketChannel.pipeline
+      pipeline.addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
+      pipeline.addLast(new LengthFieldPrepender(4))
       pipeline.addLast(new SchedulerProtocolDecoder())
       pipeline.addLast(new SchedulerProtocolEncoder())
-      pipeline.addLast(new RequestHandler(requestProtocolHandler))
-      pipeline.addLast(new ResponseHandler(responseProtocolHandler))
+//      pipeline.addLast(new RequestHandler(requestProtocolHandler))
+//      pipeline.addLast(new ResponseHandler(responseProtocolHandler))
     }
   })
 
   def createConnection(node:Node): ChannelFuture ={
     info(s"创建客户端,host=${node.host},url=${node.port}")
-    bootstrap.connect(node.host, node.port)
+    bootstrap.remoteAddress(new InetSocketAddress(node.host,node.port))
+    bootstrap.connect()
   }
 
   def shutdown():Unit   = {
