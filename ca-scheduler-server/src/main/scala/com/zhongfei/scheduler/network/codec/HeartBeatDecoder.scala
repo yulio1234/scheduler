@@ -20,7 +20,7 @@ class HeartBeatDecoder extends RequestProtocolDecoder[HeartBeat,Command] with Lo
    */
   override def decode(msg: SchedulerProtocol.Request,peer: Peer): Option[HeartBeat] = {
     if (msg.length.toInt > 0) {
-      debug(s"处理心跳请求：$msg,对等端：$Peer")
+      debug(s"处理心跳请求：${new String(msg.content)},对等端：${Peer}")
       Some(HeartBeat(msg.actionId,new String(msg.content),peer,null))
     }else{
       None

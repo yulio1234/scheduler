@@ -1,7 +1,6 @@
 package com.zhongfei.scheduler.network.codec
 
-import com.zhongfei.scheduler.network.Command.SchedulerCommand.Unregistered
-import com.zhongfei.scheduler.network.SchedulerConnectionManager.Message
+import com.zhongfei.scheduler.network.Dispatcher.{Message, Unregistered}
 import com.zhongfei.scheduler.transport.Peer
 import com.zhongfei.scheduler.transport.codec.ResponseProtocolDecoder
 import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol

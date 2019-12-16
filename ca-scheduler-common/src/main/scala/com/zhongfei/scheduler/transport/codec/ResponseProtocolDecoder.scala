@@ -1,6 +1,6 @@
 package com.zhongfei.scheduler.transport.codec
 
-import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.{Request, Response}
+import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.Response
 
 /**
  * 处理响应协议的解码器

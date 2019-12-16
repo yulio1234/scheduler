@@ -30,9 +30,9 @@ object SchedulerConnectionManager {
   case class ServerActive(serverKey:String) extends Event
 
   case object ServerManagerTerminate extends Command  
-  def apply(option: ClientOption): Behavior[Message] = Behaviors.setup { context =>
-    val client = new SchedulerClient(RequestProtocolHandlerFactory.create(context.self), ResponseProtocolHandlerFactory.create(context.self))
-    new SchedulerConnectionManager(option, context).down(client)
+  def apply(option: ClientOption,dispatcher: ActorRef[Dispatcher.Message]): Behavior[Message] = Behaviors.setup { context =>
+    val client = new SchedulerClient(RequestProtocolHandlerFactory.create(dispatcher), ResponseProtocolHandlerFactory.create(dispatcher))
+    new SchedulerConnectionManager(option, dispatcher,context).down(client)
   }
 }
 
@@ -42,7 +42,7 @@ object SchedulerConnectionManager {
  * @param option
  * @param context
  */
-class SchedulerConnectionManager(option: ClientOption, context: ActorContext[Message]) extends Lifecycle[Unit,Unit]{
+class SchedulerConnectionManager(option: ClientOption, dispatcher: ActorRef[Dispatcher.Message],context: ActorContext[Message]){
   /**
    * 下线状态
    *
@@ -121,19 +121,8 @@ class SchedulerConnectionManager(option: ClientOption, context: ActorContext[Mes
    * @param node
    */
   def tryConnect(node: Node,schedulerClient: SchedulerClient): Unit = {
-    val connection = context.spawn(SchedulerConnection(option, node, context.self,schedulerClient), "server-" + node.uri())
+    val connection = context.spawn(SchedulerConnection(option, node, context.self,dispatcher,schedulerClient), "server-" + node.uri())
     context.watchWith(connection, ServerTerminated(node.uri()))
     connection ! Initialize
-  }
-
-  override def init(): Unit = {
-
-  }
-
-  /**
-   * 给所有节点发送关闭消息
-   */
-  override def shutdown(): Unit = {
-
   }
 }

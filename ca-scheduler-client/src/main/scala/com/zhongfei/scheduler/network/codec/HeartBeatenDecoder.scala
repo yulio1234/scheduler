@@ -1,7 +1,6 @@
 package com.zhongfei.scheduler.network.codec
 
-import com.zhongfei.scheduler.network.Command.SchedulerCommand.HeartBeaten
-import com.zhongfei.scheduler.network.SchedulerConnectionManager.Message
+import com.zhongfei.scheduler.network.Dispatcher.{HeartBeaten, Message}
 import com.zhongfei.scheduler.transport.Peer
 import com.zhongfei.scheduler.transport.codec.ResponseProtocolDecoder
 import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol
