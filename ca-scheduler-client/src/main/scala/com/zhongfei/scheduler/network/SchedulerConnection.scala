@@ -2,6 +2,7 @@ package com.zhongfei.scheduler.network
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
+import com.zhongfei.scheduler.network.Command.SchedulerCommand.HeartBeaten
 import com.zhongfei.scheduler.network.SchedulerConnection._
 import com.zhongfei.scheduler.network.SchedulerConnectionManager.{Connected, ServerActive, ServerTerminate, Unreachable}
 import com.zhongfei.scheduler.network.codec.{RequestProtocolHandlerFactory, ResponseProtocolHandlerFactory}
@@ -21,9 +22,6 @@ object SchedulerConnection {
   trait Command extends Message
 
   trait Event extends Message
-
-  //心跳事件响应
-  case class HeartBeaten(actionId: Long) extends Event
 
   case object SendHeatBeat extends Command
 

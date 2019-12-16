@@ -2,6 +2,7 @@ package com.zhongfei.scheduler.network
 import com.zhongfei.scheduler.network.codec.{RequestProtocolHandlerFactory, ResponseProtocolHandlerFactory}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
+import com.zhongfei.scheduler.network.Command.SchedulerCommand.HeartBeaten
 import com.zhongfei.scheduler.network.SchedulerConnection.Initialize
 import com.zhongfei.scheduler.network.SchedulerConnectionManager._
 import com.zhongfei.scheduler.transport.Node
@@ -42,7 +43,7 @@ object SchedulerConnectionManager {
  * @param option
  * @param context
  */
-class SchedulerConnectionManager(option: ClientOption, context: ActorContext[Message]) extends Lifecycle[Unit,Unit]{
+class SchedulerConnectionManager(option: ClientOption, context: ActorContext[Message]){
   /**
    * 下线状态
    *
@@ -69,7 +70,7 @@ class SchedulerConnectionManager(option: ClientOption, context: ActorContext[Mes
          onlineServer: Map[String, ActorRef[SchedulerConnection.Command]],
            schedulerClient: SchedulerClient
         ): Behavior[Message] = Behaviors.receiveMessage{
-        //注册完成
+        //链接完成
     case Connected(serverKey,serverRef)=>
       up(waitOnlineServer,onlineServer + (serverKey->serverRef),schedulerClient)
     //活跃的服务
@@ -124,16 +125,5 @@ class SchedulerConnectionManager(option: ClientOption, context: ActorContext[Mes
     val connection = context.spawn(SchedulerConnection(option, node, context.self,schedulerClient), "server-" + node.uri())
     context.watchWith(connection, ServerTerminated(node.uri()))
     connection ! Initialize
-  }
-
-  override def init(): Unit = {
-
-  }
-
-  /**
-   * 给所有节点发送关闭消息
-   */
-  override def shutdown(): Unit = {
-
   }
 }
