@@ -21,6 +21,7 @@ class RequestProtocolHandler(actor:ActorRef[Command]) extends ProtocolHandler[Re
    * @param channel
    */
   override def doHandler(message: Request, channel: Channel): Unit = {
+    debug(s"请求处理器处理请求 message=$message")
     handle(message.actionType,message,actor,channel)
   }
 }

@@ -1,7 +1,5 @@
 package com.zhongfei.scheduler.network
 
-import java.net.InetSocketAddress
-
 import com.zhongfei.scheduler.network.codec.{RequestProtocolHandler, ResponseProtocolHandler}
 import com.zhongfei.scheduler.transport.Node
 import com.zhongfei.scheduler.transport.codec.{SchedulerProtocolDecoder, SchedulerProtocolEncoder}
@@ -34,9 +32,8 @@ class SchedulerClient(requestProtocolHandler: RequestProtocolHandler,responsePro
   })
 
   def createConnection(node:Node): ChannelFuture ={
-    info(s"创建客户端,host=${node.host},url=${node.port}")
-    bootstrap.remoteAddress(new InetSocketAddress(node.host,node.port))
-    bootstrap.connect()
+    debug(s"创建客户端,host=${node.host},url=${node.port}")
+    bootstrap.connect(node.host,node.port)
   }
 
   def shutdown():Unit   = {

@@ -15,7 +15,7 @@ object SchedulerProtocol{
                   val actionId:Long,
                   val actionType:Byte,
                   val timestamp:Long,
-                  val length:Short = -1,
+                  val length:Short = 0,
                   val content:Array[Byte] = null
                 ) extends Message
   //请求协议

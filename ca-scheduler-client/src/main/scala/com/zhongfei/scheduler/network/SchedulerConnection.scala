@@ -109,6 +109,7 @@ class SchedulerConnection(option: ClientOption,
         //并通知管理器服务已经上线
         manager ! Connected(node.uri(), context.self)
         context.log.debug(s"链接成功，转换为上线状态：$peer")
+        timers.cancel(Reconnect)
         //转移到上线状态
         up(Deadline.now.time, peer)
       } else {

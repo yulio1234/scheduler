@@ -16,7 +16,7 @@ class SchedulerConnectionSpec extends ScalaTestWithActorTestKit with WordSpecLik
       val requestProtocolHandler = RequestProtocolHandlerFactory.create(actor1.ref)
       val responseProtocolHandler = ResponseProtocolHandlerFactory.create(actor1.ref)
       val client = new SchedulerClient(requestProtocolHandler,responseProtocolHandler)
-      val connection = spawn(SchedulerConnection(ClientOption("test"), Node("127.0.0.1", 2222), actor2.ref,actor1.ref,client))
+      val connection = spawn(SchedulerConnection(ClientOption("test"), Node("192.168.1.2", 2222), actor2.ref,actor1.ref,client))
       "进行初始化 没有服务端" in {
         connection ! Initialize
         actor2.expectMessageType[Unreachable]
@@ -35,7 +35,7 @@ class SchedulerConnectionSpec extends ScalaTestWithActorTestKit with WordSpecLik
       val requestProtocolHandler = RequestProtocolHandlerFactory.create(actor1)
       val responseProtocolHandler = ResponseProtocolHandlerFactory.create(actor1)
       val client = new SchedulerClient(requestProtocolHandler,responseProtocolHandler)
-      val connection = spawn(SchedulerConnection(ClientOption("test"), Node("127.0.0.1", 2222), actor2.ref,actor1,client))
+      val connection = spawn(SchedulerConnection(ClientOption("test"), Node("192.168.1.2", 2222), actor2.ref,actor1,client))
       "进行初始化 有服务端" in{
         connection ! Initialize
 //        actor2.expectMessageType[Connected]

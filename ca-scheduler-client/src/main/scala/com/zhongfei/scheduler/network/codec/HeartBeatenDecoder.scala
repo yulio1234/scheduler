@@ -18,12 +18,7 @@ class HeartBeatenDecoder extends ResponseProtocolDecoder[HeartBeaten,Message] wi
    * @return 返回节码后的对象
    */
   override def decode(msg: SchedulerProtocol.Response,peer: Peer): Option[HeartBeaten] = {
-    if (msg.length.toInt > 0) {
-      debug(s"处理心跳响应：$msg,对等端：$Peer")
+      debug(s"处理心跳响应：$msg,对等端：$peer")
       Some(HeartBeaten(msg.actionId))
-    }else{
-      None
-    }
-
   }
 }

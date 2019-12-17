@@ -9,7 +9,7 @@ import io.netty.channel.{ChannelHandlerContext, SimpleChannelInboundHandler}
 class ResponseHandler(responseProtocolHandler: ResponseProtocolHandler)  extends SimpleChannelInboundHandler[Response] with Logging{
 
   override def channelRead0(ctx: ChannelHandlerContext, msg: Response): Unit = {
-    debug(s"读取到客户端数据，$Peer")
+    debug(s"响应处理器处理响应数据，$msg，${ctx.channel}")
     responseProtocolHandler.doHandler(msg,ctx.channel())
   }
 

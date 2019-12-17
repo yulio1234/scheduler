@@ -14,8 +14,9 @@ case class ClientOption(
                          appName: String,
                          sendHeartBeatInterval: FiniteDuration = 5.seconds,
                          checkHeartBeatOnCloseInterval: FiniteDuration = 10.seconds,
-                         transferRetryCount: Int = 3,
+                         transferRetryCount: Int = 0,
                          transferRetryInterval: FiniteDuration = 500.millis,
+                         transferTimeoutInterval:FiniteDuration = 3.seconds,
                          iniTimout: FiniteDuration = 2000.millis,
                          reconnectInterval: FiniteDuration = 3.seconds
                        ) extends Option
