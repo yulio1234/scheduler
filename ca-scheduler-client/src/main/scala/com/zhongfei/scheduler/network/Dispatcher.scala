@@ -41,6 +41,7 @@ class Dispatcher(option: ClientOption,context:ActorContext[Message]) {
       process(map + (heartBeat.actionId -> heartBeat.replyTo))
       //接收心跳请求
     case heartBeaten: HeartBeaten =>
+      context.log.debug(s"接收到心跳响应：$HeartBeaten")
       val actor = map.get(heartBeaten.actionId)
       actor match {
         case Some(value) =>

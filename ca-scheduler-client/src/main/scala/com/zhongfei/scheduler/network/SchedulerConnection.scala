@@ -99,7 +99,6 @@ class SchedulerConnection(option: ClientOption,
     //如果提前接收到了初始化结束请求
     case Initialized(success, peer) =>
       timers.cancel(InitializeTimeout)
-      context.log.debug("客户端初始化结果："+success)
       if (success) {
         //成功上线后，定时发送心跳消息
         timers.startTimerWithFixedDelay(SendHeatBeat, SendHeatBeat, option.sendHeartBeatInterval)
@@ -109,6 +108,7 @@ class SchedulerConnection(option: ClientOption,
         dispatcher ! HeartBeat(IDGenerator.next(),option.appName,peer,heartBeatenAdapter)
         //并通知管理器服务已经上线
         manager ! Connected(node.uri(), context.self)
+        context.log.debug(s"链接成功，转换为上线状态：$peer")
         //转移到上线状态
         up(Deadline.now.time, peer)
       } else {
@@ -117,6 +117,7 @@ class SchedulerConnection(option: ClientOption,
         manager ! Unreachable(node.uri())
         //尝试重连
         timers.startSingleTimer(Reconnect, Reconnect, option.reconnectInterval)
+        context.log.warn(s"网络链接建立失败，无法与服务端通讯：$peer")
         Behaviors.same
       }
     //如果创建一直没回应，也重连
@@ -133,6 +134,7 @@ class SchedulerConnection(option: ClientOption,
   def up(lastedHeartBeatTime: FiniteDuration, peer: Peer): Behavior[Message] = Behaviors.receiveMessage {
     //定时向服务器发送心跳请求
     case SendHeatBeat =>
+      context.log.debug(s"服务已在线，发送心跳请求：$peer")
       dispatcher ! HeartBeat(IDGenerator.next(),option.appName,peer,heartBeatenAdapter)
       Behaviors.same
     //收到心跳请求后，处理
@@ -144,7 +146,11 @@ class SchedulerConnection(option: ClientOption,
       //当前时间减去最后一次记录的时间如果大于时间间隔就将连接设置为不可达
       val interval = Deadline.now - lastedHeartBeatTime
       if (interval.time > option.checkHeartBeatOnCloseInterval) {
+        //给服务器发送不可达消息
         manager ! Unreachable(node.uri())
+        //关闭心跳检查
+        timers.cancel(CheckHeartBeatIntervalTimeout)
+        context.log.warn(s"心跳超时，状态转换为不可达:$peer")
         unreachable(peer)
       } else {
         Behaviors.same
@@ -163,6 +169,7 @@ class SchedulerConnection(option: ClientOption,
   def unreachable(peer: Peer): Behavior[Message] = Behaviors.receiveMessage {
     //定时向服务器发送心跳请求
     case SendHeatBeat =>
+      context.log.warn(s"服务端无法链接，正在心跳请求：$peer")
       dispatcher ! HeartBeat(IDGenerator.next(),option.appName,peer,heartBeatenAdapter)
       Behaviors.same
     case WrappedHeartBeaten(response) if response.isInstanceOf[HeartBeaten]=>

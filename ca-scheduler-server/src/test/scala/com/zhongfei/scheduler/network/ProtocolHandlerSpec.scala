@@ -9,7 +9,7 @@ import org.scalatest.WordSpecLike
 class ProtocolHandlerSpec extends ScalaTestWithActorTestKit with WordSpecLike {
   "网络通讯协议处理器" when {
     "请求处理器" should {
-      val actor = createTestProbe[ServerDispatcher.Command]()
+      val actor = createTestProbe[ServerDispatcher.Message]()
       val requestProtocolHandler = RequestProtocolHandlerFactory.create(actor.ref)
       val array = "test-application".getBytes
       "处理心跳请求"in {
