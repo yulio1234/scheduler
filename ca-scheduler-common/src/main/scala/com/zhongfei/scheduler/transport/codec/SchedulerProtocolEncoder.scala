@@ -29,10 +29,11 @@ class SchedulerProtocolEncoder extends MessageToByteEncoder[Protocol] with Loggi
       case response: Response =>
         out.writeByte(response.protocolType)
         out.writeLong(response.actionId)
+        out.writeByte(response.actionType)
         out.writeBoolean(response.success)
         out.writeByte(response.errorCode)
         out.writeLong(response.timestamp)
-        out.writeInt(response.length)
+        out.writeShort(response.length)
         if (response.content != null) {
           out.writeBytes(response.content)
         }

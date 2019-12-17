@@ -28,8 +28,8 @@ class SchedulerClient(requestProtocolHandler: RequestProtocolHandler,responsePro
       pipeline.addLast(new LengthFieldPrepender(4))
       pipeline.addLast(new SchedulerProtocolDecoder())
       pipeline.addLast(new SchedulerProtocolEncoder())
-//      pipeline.addLast(new RequestHandler(requestProtocolHandler))
-//      pipeline.addLast(new ResponseHandler(responseProtocolHandler))
+      pipeline.addLast(new RequestHandler(requestProtocolHandler))
+      pipeline.addLast(new ResponseHandler(responseProtocolHandler))
     }
   })
 

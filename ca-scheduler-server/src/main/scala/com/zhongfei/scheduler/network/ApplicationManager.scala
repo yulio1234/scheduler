@@ -27,9 +27,9 @@ private class ApplicationManager(option:SingletonOption,context:ActorContext[Com
             Behaviors.same
             //如果没有应用组，就先创建在转发
           case None =>
-            context.log.info("没有查询到应用组，创建一个新的应用组 {}",appName)
+            context.log.info("没有查询到应用组，创建一个新的应用组 group:{}",appName)
             //创建应用组
-            val appGroupActor = context.spawn(ApplicationGroup(option,appName),"application-group-"+appName)
+            val appGroupActor = context.spawnAnonymous(ApplicationGroup(option,appName))
             //监听应用组关闭事件
             context.watchWith(appGroupActor,GroupTerminated(appName))
             appGroupActor ! command
@@ -48,7 +48,7 @@ private class ApplicationManager(option:SingletonOption,context:ActorContext[Com
         }
         //匹配应用组注销消息，并将数据清除
       case GroupTerminated(appGroupName) =>
-        context.log.info("接收到应用组注销消息：appGroupName=",appGroupName)
+        context.log.info("接收到应用组注销消息：appGroupName : ",appGroupName)
         manage(appGroupMap - appGroupName)
   }
 }

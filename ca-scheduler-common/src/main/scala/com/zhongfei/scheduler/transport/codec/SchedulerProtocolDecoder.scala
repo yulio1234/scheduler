@@ -32,10 +32,15 @@ class SchedulerProtocolDecoder extends ByteToMessageDecoder{
           val timestamp = in.readLong()
           val expire = in.readLong()
           val length = in.readShort()
-          val bytes = new Array[Byte](length)
-          in.readBytes(bytes)
-          val request = Request(actionId,actionType,expire,timestamp,length,bytes)
-          out.add(request)
+          if (length > 0) {
+            val bytes = new Array[Byte](length)
+            in.readBytes(bytes)
+            val request = Request(actionId,actionType,expire,timestamp,length,bytes)
+            out.add(request)
+          }else{
+            val request = Request(actionId,actionType,expire,timestamp,length)
+            out.add(request)
+          }
           //处理响应协议
         }else if(protocolType == protocl.ProtocolTypeEnum.Response.id){
           val actionId = in.readLong()
@@ -44,10 +49,15 @@ class SchedulerProtocolDecoder extends ByteToMessageDecoder{
           val errorByte = in.readByte()
           val timestamp = in.readLong()
           val length = in.readShort()
-          val bytes = new Array[Byte](length)
-          in.readBytes(bytes)
-          val response = Response(actionId,actionType ,success,errorByte,timestamp,length,bytes)
-          out.add(response)
+          if (length > 0) {
+            val bytes = new Array[Byte](length)
+            in.readBytes(bytes)
+            val response = Response(actionId,actionType ,success,errorByte,timestamp,length,bytes)
+            out.add(response)
+          }else{
+            val response = Response(actionId,actionType ,success,errorByte,timestamp,length)
+            out.add(response)
+          }
         }
       }
     }

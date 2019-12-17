@@ -20,8 +20,9 @@ class SchedulerClientTSpec extends ScalaTestWithActorTestKit with WordSpecLike  
         channel.writeAndFlush(request).sync().addListener{(future:ChannelFuture)=>
           info(future.isSuccess.toString)
 
-          channel.close().sync()
         }
+        Thread.sleep(100000)
+          channel.close().sync()
       }
       "发起取消注册请求" in {
         val request = Request(actionId = 1, actionType = ActionTypeEnum.Unregister.id.toByte, length = bytes.length.toShort, content = bytes)

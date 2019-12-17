@@ -9,7 +9,7 @@ import com.zhongfei.scheduler.options.SingletonOption
 object ApplicationGroup{
   trait Command
   trait Event
-  case object ApplicationTerminated extends Command
+  case class ApplicationTerminated(uri:String) extends Command
   /**
    * 应用组
    * @param appName
@@ -19,8 +19,7 @@ object ApplicationGroup{
 }
 private class ApplicationGroup(option:SingletonOption,context:ActorContext[ApplicationGroup.Command],appName:String){
 
-  def handle(appMap:Map[String,ActorRef[Application.Command]]):Behavior[ApplicationGroup.Command] = Behaviors.receiveMessage[ApplicationGroup.Command] { message => {
-    message match {
+  def handle(appMap:Map[String,ActorRef[Application.Command]]):Behavior[ApplicationGroup.Command] = Behaviors.receiveMessage[ApplicationGroup.Command] {
         //处理应用注册消息
       case command @ HeartBeat(_, _ , peer,_) =>
         //检查是否由存在的应用，如果有就返回成功，没有就创建一个
@@ -31,11 +30,11 @@ private class ApplicationGroup(option:SingletonOption,context:ActorContext[Appli
             application ! command
             //如果没有找到应用，就创建一个新的应用
           case None =>
-            context.log.info("没有查询到应用，创建一个新的应用 {}",uri)
+            context.log.info("没有查询到应用，创建一个新的应用,uri:{}",uri)
             //创建应用
-            val application = context.spawn(Application(option,peer),s"application-${appName}-${uri}")
+            val application = context.spawnAnonymous(Application(option,peer))
             //监控应用崩溃
-            context.watchWith(application,ApplicationTerminated)
+            context.watchWith(application,ApplicationTerminated(uri))
             application ! command
             //保存应用
             handle(appMap + (uri -> application))
@@ -50,6 +49,12 @@ private class ApplicationGroup(option:SingletonOption,context:ActorContext[Appli
           case None => reply ! Unregistered(actionId)
         }
         Behaviors.same
-    }
-  }}
+      case ApplicationTerminated(uri) =>
+        val map = appMap - uri
+        if (map.size > 0) {
+          handle(map)
+        }else{
+          Behaviors.stopped
+        }
+  }
 }
