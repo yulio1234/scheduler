@@ -12,8 +12,9 @@ import scala.concurrent.duration._
  */
 case class ClientOption(
                          appName: String,
+                         fetchActiveServerListInterval:FiniteDuration = 10.seconds,
                          sendHeartBeatInterval: FiniteDuration = 5.seconds,
-                         checkHeartBeatOnCloseInterval: FiniteDuration = 10.seconds,
+                         checkHeartBeatOnCloseInterval: FiniteDuration = 8.seconds,
                          transferRetryCount: Int = 0,
                          transferRetryInterval: FiniteDuration = 500.millis,
                          transferTimeoutInterval:FiniteDuration = 3.seconds,

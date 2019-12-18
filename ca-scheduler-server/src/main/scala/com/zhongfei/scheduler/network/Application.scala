@@ -37,7 +37,9 @@ private class Application(option:SingletonOption,peer: Peer, timers: TimerSchedu
     message match {
         //接收并处理心跳请求,单机的不用回复地址
       case HeartBeat(actionId, _, _,replyTo) =>
-        replyTo ! HeartBeaten(actionId)
+        replyTo !
+
+        (actionId)
         handle(Deadline.now.time)
         //如果是注销请求，就关闭应用
       case Unregister(actionId, _, _,reply) =>

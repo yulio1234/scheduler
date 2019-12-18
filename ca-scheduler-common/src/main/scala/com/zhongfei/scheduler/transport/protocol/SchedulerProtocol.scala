@@ -54,6 +54,6 @@ object SchedulerProtocol{
    * 动作类型enum
    */
   object ActionTypeEnum extends Enumeration {
-    val HeartBeat,Unregister,AddSchedule,DelSchedule = Value
+    val HeartBeat,Unregister,ScheduleAdd,ScheduleDel,ScheduleDone,ActiveServerFetch = Value
   }
 }

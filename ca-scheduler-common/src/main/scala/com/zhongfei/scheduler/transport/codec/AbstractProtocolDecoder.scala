@@ -6,7 +6,7 @@ import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.Protocol
 import com.zhongfei.scheduler.utils.Logging
 
 /**
- * 抽象编码处理器
+ * 抽象解码处理器
  * @tparam P 可解析的协议消息，现阶段为Request和Response
  * @tparam U 返回的消息类型，用于给actor发送的actor内部子协议
  * @tparam C actor内部的内部协议父类，用于接收所有子协议

@@ -23,7 +23,9 @@ object ApplicationDispatcher {
   trait Event extends Message
 
   case class Done(success: Boolean, retryCount: Int, cause: Throwable, message: Response) extends Command
+
   case class Retry(done: Done) extends Command
+
   case object Timeout extends Command
 
   def apply(option: SingletonOption, peer: Peer, message: ServerDispatcher.Message): Behavior[Message] = Behaviors.setup { context =>
@@ -39,41 +41,39 @@ object ApplicationDispatcher {
 private class ApplicationDispatcher(option: SingletonOption, peer: Peer, timers: TimerScheduler[Message], message: ServerDispatcher.Message, context: ActorContext[Message]) {
   timers.startSingleTimer(Timeout, Timeout, option.processWaitTime)
 
-  def process(): Behavior[Message] = Behaviors.receiveMessage[Message] { message =>
-    message match {
-      //心跳返回消息
-      case HeartBeaten(actionId) =>
-        val response = Response(actionId = actionId, actionType = ActionTypeEnum.HeartBeat.id.toByte)
-        context.log.info(s"发送应用心跳响应，actionId=$actionId")
-        send(option.transferRetryCount, response, context.self)
+  def process(): Behavior[Message] = Behaviors.receiveMessage[Message] {
+    //心跳返回消息
+    case HeartBeaten(actionId) =>
+      val response = Response(actionId = actionId, actionType = ActionTypeEnum.HeartBeat.id.toByte)
+      context.log.info(s"发送应用心跳响应，actionId=$actionId")
+      send(option.transferRetryCount, response, context.self)
+      Behaviors.same
+    //处理应用取消注册请求，创建回复信息，并回复
+    case Unregistered(actionId) =>
+      val response = Response(actionId = actionId, actionType = ActionTypeEnum.Unregister.id.toByte)
+      send(option.transferRetryCount, response, context.self)
+      //返回取消注册响应消息
+      context.log.info(s"应用取消注册完成，关闭actor，actionId=$actionId")
+      Behaviors.same
+    case Timeout =>
+      context.log.error("应用处理超时,关闭应用分发器")
+      Behaviors.stopped
+    case done: Done if done.success =>
+      context.log.debug("响应消息发送成功，关闭actor")
+      Behaviors.stopped
+    case done: Done if done.success =>
+      //如果重试次数大于0，就重试
+      if (done.retryCount > 0) {
+        timers.startSingleTimer(Retry, Retry(done.copy(retryCount = done.retryCount - 1)), option.transferRetryInterval)
         Behaviors.same
-      //处理应用取消注册请求，创建回复信息，并回复
-      case Unregistered(actionId) =>
-        val response = Response(actionId = actionId, actionType = ActionTypeEnum.Unregister.id.toByte)
-        send(option.transferRetryCount, response, context.self)
-        //返回取消注册响应消息
-        context.log.info(s"应用取消注册完成，关闭actor，actionId=$actionId")
-        Behaviors.same
-      case Timeout =>
-        context.log.error("应用处理超时,关闭应用分发器")
+      } else {
+        context.log.error(s"响应消息发送失败,消息：$message", done.cause)
         Behaviors.stopped
-      case done: Done if done.success =>
-        context.log.debug("响应消息发送成功，关闭actor")
-        Behaviors.stopped
-      case done: Done if done.success =>
-        //如果重试次数大于0，就重试
-        if (done.retryCount > 0) {
-          timers.startSingleTimer(Retry,Retry(done.copy(retryCount = done.retryCount -1)),option.transferRetryInterval)
-          Behaviors.same
-        } else {
-          context.log.error(s"响应消息发送失败,消息：$message", done.cause)
-          Behaviors.stopped
-        }
-      case retry: Retry =>
-        context.log.error(s"响应消息发送失败,进行重试，剩余次数：${retry.done.retryCount},消息体：$message")
-        send(retry.done.retryCount, retry.done.message, context.self)
-        Behaviors.same
-    }
+      }
+    case retry: Retry =>
+      context.log.error(s"响应消息发送失败,进行重试，剩余次数：${retry.done.retryCount},消息体：$message")
+      send(retry.done.retryCount, retry.done.message, context.self)
+      Behaviors.same
   }
 
   def send(retryCount: Int, response: Response, actorRef: ActorRef[Message]): Unit = {

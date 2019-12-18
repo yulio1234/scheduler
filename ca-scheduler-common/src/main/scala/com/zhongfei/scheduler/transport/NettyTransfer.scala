@@ -1,10 +1,10 @@
 package com.zhongfei.scheduler.transport
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
-import akka.actor.typed.{ActorRef, Behavior, PostStop}
+import akka.actor.typed.{Behavior, PostStop}
+import com.zhongfei.scheduler.Exception.SchedulerExceptionFactory.NetworkTransferException
 import com.zhongfei.scheduler.Processor
-import com.zhongfei.scheduler.transport.NettyTransfer.{Command, Failure, Success, WrappedRequest, WrappedResponse}
-import com.zhongfei.scheduler.transport.SchedulerExceptions.NetworkTransferException
+import com.zhongfei.scheduler.transport.NettyTransfer._
 import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.{Request, Response}
 import io.netty.channel.{Channel, ChannelFuture}
 
@@ -25,7 +25,7 @@ object NettyTransfer{
 /**
  * 传输器，专门处理远程通讯
  */
-// TODO: 试试用高等函数来写
+
 class NettyTransfer(channel: Channel,
                     timers: TimerScheduler[Command],
                     interval: FiniteDuration,
@@ -72,7 +72,7 @@ class NettyTransfer(channel: Channel,
               timers.startSingleTimer(message, message, interval)
               process(retryCount - 1)
             //如果重试次数不够了，就回复给发送者，并停止
-            case _ => throw new NetworkTransferException(cause)
+            case _ => throw  new NetworkTransferException(cause)
           }
       }
     }.receiveSignal {

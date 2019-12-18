@@ -1,5 +1,6 @@
 package com.zhongfei.scheduler.network.codec
 
+import com.zhongfei.scheduler.Exception.SchedulerExceptionFactory
 import com.zhongfei.scheduler.network.Dispatcher.{Message, Unregistered}
 import com.zhongfei.scheduler.transport.Peer
 import com.zhongfei.scheduler.transport.codec.ResponseProtocolDecoder
@@ -19,7 +20,7 @@ class UnregisteredDecoder extends ResponseProtocolDecoder[Unregistered,Message] 
   override def decode(msg: SchedulerProtocol.Response, peer: Peer): Option[Unregistered] = {
     if (msg.length > 0) {
       debug(s"处理取消注册请求：$msg,对等端：$Peer")
-      Some(Unregistered(actionId = msg.actionId))
+      Some(Unregistered(actionId = msg.actionId,msg.success,SchedulerExceptionFactory.get(msg.errorCode),peer))
     }else{
       None
     }

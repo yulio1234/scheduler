@@ -1,11 +1,10 @@
 package com.zhongfei.scheduler.network
-import com.zhongfei.scheduler.network.codec.{RequestProtocolHandlerFactory, ResponseProtocolHandlerFactory}
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
 import com.zhongfei.scheduler.network.SchedulerConnection.Initialize
 import com.zhongfei.scheduler.network.SchedulerConnectionManager._
+import com.zhongfei.scheduler.network.codec.{RequestProtocolHandlerFactory, ResponseProtocolHandlerFactory}
 import com.zhongfei.scheduler.transport.Node
-import com.zhongfei.scheduler.utils.Lifecycle
 
 object SchedulerConnectionManager {
 
@@ -20,19 +19,31 @@ object SchedulerConnectionManager {
   case class Unreachable(serverKey:String) extends Command with SchedulerConnection.Command
   //连接服务完成
   case class Connected(serverKey: String, serverRef: ActorRef[SchedulerConnection.Command]) extends Command
+  //抓取活跃服务列表
+  case object FetchActiveServerList extends Command
 
   //服务端不可达
   case class ServerUnreachable(serverKey: String) extends Command with SchedulerConnection.Command
+  //服务停止请求
   case object ServerTerminate extends Command with SchedulerConnection.Command
+  //服务已经停止
   case class ServerTerminated(serverKey: String) extends Event
-
+  //活动服务列表
   case class ActiveServerList(hosts: Option[Set[Node]]) extends Event
+  //活动服务
   case class ServerActive(serverKey:String) extends Event
+  //服务管理器停止
+  case object ServerManagerTerminate extends Command
+  //查询在线服务列表
+  case class OnlineServerListQuery(actorRef:ActorRef[OnlineServerListQueried]) extends Command
+  //返回在线服务列表
+  case class OnlineServerListQueried(set:Set[ActorRef[SchedulerConnection.Command]]) extends Event
 
-  case object ServerManagerTerminate extends Command  
-  def apply(option: ClientOption,dispatcher: ActorRef[Dispatcher.Message]): Behavior[Message] = Behaviors.setup { context =>
+  def apply(option: ClientOption,dispatcher: ActorRef[Dispatcher.Message]): Behavior[Message] = Behaviors.setup { context => Behaviors.withTimers{
+    timers =>
     val client = new SchedulerClient(RequestProtocolHandlerFactory.create(dispatcher), ResponseProtocolHandlerFactory.create(dispatcher))
-    new SchedulerConnectionManager(option, dispatcher,context).down(client)
+      new SchedulerConnectionManager(option,timers, dispatcher,context).down(client)
+  }
   }
 }
 
@@ -42,7 +53,7 @@ object SchedulerConnectionManager {
  * @param option
  * @param context
  */
-class SchedulerConnectionManager(option: ClientOption, dispatcher: ActorRef[Dispatcher.Message],context: ActorContext[Message]){
+class SchedulerConnectionManager(option: ClientOption,  timers: TimerScheduler[Message], dispatcher: ActorRef[Dispatcher.Message],context: ActorContext[Message]){
   /**
    * 下线状态
    *
@@ -55,6 +66,10 @@ class SchedulerConnectionManager(option: ClientOption, dispatcher: ActorRef[Disp
       down(schedulerClient)
       //如果有接收到服务端应答，就转换状态到上线
     case Connected(serverKey, serverRef) =>
+      //定时拉去活跃服务列表
+      timers.startTimerWithFixedDelay(FetchActiveServerList,FetchActiveServerList,option.fetchActiveServerListInterval)
+      //监听服务下线
+      context.watchWith(serverRef,ServerTerminated(serverKey))
       up(Map.empty, Map.empty + (serverKey -> serverRef),schedulerClient)
   }
 
@@ -71,7 +86,9 @@ class SchedulerConnectionManager(option: ClientOption, dispatcher: ActorRef[Disp
         ): Behavior[Message] = Behaviors.receiveMessage{
         //注册完成
     case Connected(serverKey,serverRef)=>
-      up(waitOnlineServer,onlineServer + (serverKey->serverRef),schedulerClient)
+      //监听服务下线
+      context.watchWith(serverRef,ServerTerminated(serverKey))
+      up(waitOnlineServer-serverKey,onlineServer + (serverKey->serverRef),schedulerClient)
     //活跃的服务
     case ActiveServerList(hosts) =>
       hosts match {
@@ -98,18 +115,28 @@ class SchedulerConnectionManager(option: ClientOption, dispatcher: ActorRef[Disp
           Behaviors.same
         case None =>Behaviors.same
       }
+      //查询在线服务列表
+    case OnlineServerListQuery(actorRef) =>
+      actorRef ! OnlineServerListQueried(onlineServer.values.toSet)
+      Behaviors.same
     //接收服务发来的不可达消息
     case ServerUnreachable(serverKey) =>
+      context.log.debug(s"收到服务不可达消息，serverKey = $serverKey,当前不可达服务容器 = ${waitOnlineServer.keys}，当前在线服务容器 = ${onlineServer.keys}")
       //将不可达的服务转移到等待上线中
       up(waitOnlineServer + (serverKey -> onlineServer(serverKey)),onlineServer - serverKey,schedulerClient)
       //服务重新连上线了
     case ServerActive(serverKey) =>
       up(waitOnlineServer - serverKey,onlineServer + (serverKey -> waitOnlineServer(serverKey)),schedulerClient)
     case ServerTerminated(serverKey) =>
+      context.log.debug(s"收到服务关闭消息，serverKey = $serverKey,当前不可达容器 = ${waitOnlineServer.keys} ，当前在线服务容器 = ${onlineServer.keys}")
       //注销已经关闭的服务
       up(waitOnlineServer -serverKey, onlineServer - serverKey,schedulerClient)
     case ServerManagerTerminate =>
-      // TODO: 管理器关闭 
+      //通知所有服务下线
+      context.log.debug("接收到服务管理器下线请求")
+      onlineServer.values.foreach{server =>
+        server ! ServerTerminate
+      }
       down(null)
 
   }

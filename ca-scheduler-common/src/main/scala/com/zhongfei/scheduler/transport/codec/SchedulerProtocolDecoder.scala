@@ -2,9 +2,9 @@ package com.zhongfei.scheduler.transport.codec
 
 import java.util
 
+import com.zhongfei.scheduler.Exception.SchedulerExceptionFactory
 import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.{Request, Response}
 import com.zhongfei.scheduler.transport.protocol.{SchedulerProtocol => protocl}
-import com.zhongfei.scheduler.transport.{SchedulerExceptions => exceptions}
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.ByteToMessageDecoder
@@ -16,12 +16,12 @@ class SchedulerProtocolDecoder extends ByteToMessageDecoder{
     val magic = in.readByte()
     //检测协议魔数是否正常
     if(magic != protocl.magic){
-      throw exceptions.ProtocolMagicException()
+      throw SchedulerExceptionFactory.ProtocolMagicException
     }else{
       //如果版本不对，就抛出协议版本异常
       val version = in.readByte()
       if(version != protocl.version){
-        throw exceptions.ProtocolVersionException()
+        throw SchedulerExceptionFactory.ProtocolVersionException()
       }else{
         //协议类型
         val protocolType = in.readByte()

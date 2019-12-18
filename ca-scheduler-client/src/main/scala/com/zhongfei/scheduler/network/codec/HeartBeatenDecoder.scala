@@ -1,5 +1,6 @@
 package com.zhongfei.scheduler.network.codec
 
+import com.zhongfei.scheduler.Exception.SchedulerExceptionFactory
 import com.zhongfei.scheduler.network.Dispatcher.{HeartBeaten, Message}
 import com.zhongfei.scheduler.transport.Peer
 import com.zhongfei.scheduler.transport.codec.ResponseProtocolDecoder
@@ -19,6 +20,6 @@ class HeartBeatenDecoder extends ResponseProtocolDecoder[HeartBeaten,Message] wi
    */
   override def decode(msg: SchedulerProtocol.Response,peer: Peer): Option[HeartBeaten] = {
       debug(s"处理心跳响应：$msg,对等端：$peer")
-      Some(HeartBeaten(msg.actionId))
+      Some(HeartBeaten(msg.actionId,msg.success,SchedulerExceptionFactory.get(msg.errorCode),peer))
   }
 }

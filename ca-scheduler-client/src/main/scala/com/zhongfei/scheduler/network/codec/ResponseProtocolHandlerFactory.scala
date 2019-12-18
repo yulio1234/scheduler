@@ -15,6 +15,7 @@ object ResponseProtocolHandlerFactory extends ProtocolHandlerFactory[Message,Res
     //注册心跳解码处理器
     handler.registerCommand(ActionTypeEnum.HeartBeat.id,new HeartBeatenDecoder)
     handler.registerCommand(ActionTypeEnum.Unregister.id,new UnregisteredDecoder)
+    handler.registerCommand(ActionTypeEnum.ScheduleAdd.id,new ScheduleAddedDecoder)
     handler
   }
 

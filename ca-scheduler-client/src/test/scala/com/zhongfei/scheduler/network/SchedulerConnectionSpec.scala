@@ -39,7 +39,7 @@ class SchedulerConnectionSpec extends ScalaTestWithActorTestKit with WordSpecLik
       "进行初始化 有服务端" in{
         connection ! Initialize
 //        actor2.expectMessageType[Connected]
-        Thread.sleep(30000)
+        Thread.sleep(1000000)
         connection ! ServerTerminate
       }
     }
