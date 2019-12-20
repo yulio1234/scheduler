@@ -43,8 +43,9 @@ project(":ca-scheduler-server"){
         compile project(":ca-scheduler-common")
         compile group: 'org.rocksdb', name: 'rocksdbjni', version: '6.2.2'
         compile group: 'org.fusesource.leveldbjni', name: 'leveldbjni-all', version: '1.8'
-        compile group: 'com.typesafe.akka', name: 'akka-actor-typed_2.13', version: '2.6.0'
-        testCompile group: 'com.typesafe.akka', name: 'akka-actor-testkit-typed_2.13', version: '2.6.0'
+        compile group: 'com.typesafe.akka', name: 'akka-actor-typed_2.13', version: '2.6.1'
+        compile group: 'com.typesafe.akka', name: 'akka-persistence-typed_2.13' , version: '2.6.1'
+        testCompile group: 'com.typesafe.akka', name: 'akka-actor-testkit-typed_2.13', version: '2.6.1'
         testCompile group: 'org.scalatest', name: 'scalatest_2.13', version: '3.0.8'
         testCompile group: "ch.qos.logback" ,name: "logback-classic", version: '1.2.3'
     }
