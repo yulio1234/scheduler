@@ -11,7 +11,7 @@ object TimingWheelStorage{
 class TimingWheelStorage(reaperEnabled: Boolean = true,clockInterval:Long = 200L) extends Operation[ScheduleExecutor] with Logging{
   private val expirationReaper = new ExpiredOperationReaper()
   private[this] val timer:Timer = new SystemTimer("timingWheelTimer")
-  private[this] var executors = Map.empty[String,ScheduleExecutor]
+  private[this] var executors = Map.empty[Long,ScheduleExecutor]
   override def save(executor: ScheduleExecutor): Unit = {
     executors += executor.id -> executor
     timer.add(executor)
@@ -24,11 +24,11 @@ class TimingWheelStorage(reaperEnabled: Boolean = true,clockInterval:Long = 200L
   if(reaperEnabled)
     expirationReaper.start()
 
-  override def find(id: String): ScheduleExecutor = {
+  override def find(id: Long): ScheduleExecutor = {
     executors(id)
   }
 
-  override def delete(id: String): Unit = {
+  override def delete(id: Long): Unit = {
     executors.get(id) match {
       case Some(v) => {
         v.cancel()

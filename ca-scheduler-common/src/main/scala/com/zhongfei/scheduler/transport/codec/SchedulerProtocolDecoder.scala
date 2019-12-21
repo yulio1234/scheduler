@@ -16,7 +16,7 @@ class SchedulerProtocolDecoder extends ByteToMessageDecoder{
     val magic = in.readByte()
     //检测协议魔数是否正常
     if(magic != protocl.magic){
-      throw SchedulerExceptionFactory.ProtocolMagicException
+      throw SchedulerExceptionFactory.ProtocolMagicException()
     }else{
       //如果版本不对，就抛出协议版本异常
       val version = in.readByte()

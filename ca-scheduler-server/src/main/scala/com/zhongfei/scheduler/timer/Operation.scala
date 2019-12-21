@@ -5,6 +5,6 @@ package com.zhongfei.scheduler.timer
  */
 trait Operation[T]{
   def save(option: T):Unit
-  def delete(id:String):Unit
-  def find(id:String):T
+  def delete(id:Long):Unit
+  def find(id:Long):T
 }

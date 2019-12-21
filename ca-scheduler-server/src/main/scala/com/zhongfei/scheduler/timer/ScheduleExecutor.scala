@@ -1,14 +1,15 @@
 package com.zhongfei.scheduler.timer
 
+import com.zhongfei.scheduler.timer.TimerEntity.ScheduleAddBody
 import com.zhongfei.scheduler.utils.Logging
 
 /**
  * 调度执行器，最原始的调度单元
  */
 object ScheduleExecutor{
-  def apply(id: String, delayMs: Long): ScheduleExecutor = new ScheduleExecutor(id, delayMs)
+  def apply(id: Long, delayMs: Long,schedulerAddBody:ScheduleAddBody): ScheduleExecutor = new ScheduleExecutor(id, delayMs,schedulerAddBody)
 }
-class ScheduleExecutor(val id:String,override val delayMs: Long) extends TimerTask with Logging {
+class ScheduleExecutor(val id:Long,override val delayMs: Long,scheduleAddBody: ScheduleAddBody) extends TimerTask with Logging {
   override def run(): Unit = {
     info("schedule executor id is "+id)
   }
