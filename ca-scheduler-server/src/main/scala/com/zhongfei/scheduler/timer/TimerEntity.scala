@@ -11,7 +11,7 @@ object TimerEntity {
 
   /**
    * 命令接口
-   *
+   *
    * @tparam Reply
    */
   sealed trait Command[Reply <: CommandReply] {
