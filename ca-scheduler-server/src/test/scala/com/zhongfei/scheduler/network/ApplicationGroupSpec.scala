@@ -1,7 +1,7 @@
 package com.zhongfei.scheduler.network
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import com.zhongfei.scheduler.command.SchedulerCommand.HeartBeat
+import .HeartBeat
 import com.zhongfei.scheduler.options.SingletonOption
 import com.zhongfei.scheduler.transport.Node
 import org.scalatest.WordSpecLike

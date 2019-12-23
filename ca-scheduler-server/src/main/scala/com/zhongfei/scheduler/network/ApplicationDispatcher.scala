@@ -2,8 +2,8 @@ package com.zhongfei.scheduler.network
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
-import com.zhongfei.scheduler.command.SchedulerCommand.{HeartBeaten, Unregistered}
-import com.zhongfei.scheduler.network.ApplicationDispatcher.{Done, Message, Retry, Timeout}
+import com.zhongfei.scheduler.network.ApplicationDispatcher.{Command, Done, Retry, Timeout}
+import com.zhongfei.scheduler.network.ServerDispatcher.{HeartBeaten, Unregistered}
 import com.zhongfei.scheduler.options.SingletonOption
 import com.zhongfei.scheduler.transport.Peer
 import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.{ActionTypeEnum, Response}
@@ -16,11 +16,8 @@ import io.netty.channel.ChannelFuture
 // TODO: 需要设置监督策略，失败时打印消息 ？？？
 object ApplicationDispatcher {
 
-  trait Message
 
-  trait Command extends Message
-
-  trait Event extends Message
+  trait Command
 
   case class Done(success: Boolean, retryCount: Int, cause: Throwable, message: Response) extends Command
 
@@ -28,7 +25,7 @@ object ApplicationDispatcher {
 
   case object Timeout extends Command
 
-  def apply(option: SingletonOption, peer: Peer, message: ServerDispatcher.Message): Behavior[Message] = Behaviors.setup { context =>
+  def apply(option: SingletonOption, peer: Peer, message: ServerDispatcher.Command[_]): Behavior[Command] = Behaviors.setup { context =>
     Behaviors.withTimers { timer =>
       new ApplicationDispatcher(option, peer, timer, message, context).process()
     }
@@ -38,10 +35,10 @@ object ApplicationDispatcher {
 /**
  * 处理应用管理器相关事务,临时对象,这个对象保存状态
  */
-private class ApplicationDispatcher(option: SingletonOption, peer: Peer, timers: TimerScheduler[Message], message: ServerDispatcher.Message, context: ActorContext[Message]) {
+private class ApplicationDispatcher(option: SingletonOption, peer: Peer, timers: TimerScheduler[Command], message: ServerDispatcher.Command[_], context: ActorContext[Command]) {
   timers.startSingleTimer(Timeout, Timeout, option.processWaitTime)
 
-  def process(): Behavior[Message] = Behaviors.receiveMessage[Message] {
+  def process(): Behavior[Command] = Behaviors.receiveMessage[Command] {
     //心跳返回消息
     case HeartBeaten(actionId) =>
       val response = Response(actionId = actionId, actionType = ActionTypeEnum.HeartBeat.id.toByte)
@@ -76,7 +73,7 @@ private class ApplicationDispatcher(option: SingletonOption, peer: Peer, timers:
       Behaviors.same
   }
 
-  def send(retryCount: Int, response: Response, actorRef: ActorRef[Message]): Unit = {
+  def send(retryCount: Int, response: Response, actorRef: ActorRef[Command]): Unit = {
     peer.channel.writeAndFlush(response).addListener((future: ChannelFuture) => {
       actorRef ! Done(future.isSuccess, retryCount, future.cause(), response)
     })

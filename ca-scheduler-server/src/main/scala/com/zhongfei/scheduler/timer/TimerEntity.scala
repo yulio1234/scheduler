@@ -2,12 +2,13 @@ package com.zhongfei.scheduler.timer
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
+import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
 import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, ReplyEffect}
 import akka.persistence.typed.{PersistenceId, RecoveryCompleted}
 import com.zhongfei.scheduler.timer.TimerEntity._
 
 object TimerEntity {
-
+   val timerTypeKey: EntityTypeKey[Command[_]] = EntityTypeKey[Command[_]]("Timer")
 
   /**
    * 命令接口
@@ -30,13 +31,11 @@ object TimerEntity {
   //返回的命令类型
   sealed trait CommandReply
 
-  sealed trait OperationResult extends CommandReply
+  sealed case class OperationResult(actionId:Long) extends CommandReply
 
-  case object Succeeded extends OperationResult
 
-  final case class Failed(cause: Throwable)
-
-  final case class ScheduleAdd(actionId: Long, body: ScheduleAddBody, expire: Long, timestamp: Long, replyTo: ActorRef[OperationResult]) extends Command[OperationResult]
+  final case class ScheduleAdd(actionId: Long, body: ScheduleAddBody, expire: Long, timestamp: Long, replyTo: ActorRef[OperationResult])
+    extends Command[OperationResult]
 
   case class ScheduleAddBody(appName: String, eventName: String, extra: String)
 
@@ -85,9 +84,9 @@ class TimerEntity(persistenceId: PersistenceId, context: ActorContext[Command[_]
       context.log.debug(s"初始化定时器接收到命令,$cmd")
       cmd match {
         case ScheduleAdd(actionId, body, expire, timestamp, replyTo) =>
-          Effect.persist(ScheduleAdded(actionId, body, expire, timestamp)).thenReply(replyTo)(_ => Succeeded)
+          Effect.persist(ScheduleAdded(actionId, body, expire, timestamp)).thenReply(replyTo)(_ => OperationResult(actionId))
         case ScheduleDel(actionId, replyTo) =>
-          Effect.persist(ScheduleDeleted(actionId)).thenReply(replyTo)(_ => Succeeded)
+          Effect.persist(ScheduleDeleted(actionId)).thenReply(replyTo)(_ => OperationResult(actionId))
         case TimerActive(timer,replyTo) =>Effect.persist(TimerActived(timer)).thenNoReply()
       }
     }
@@ -115,9 +114,9 @@ class TimerEntity(persistenceId: PersistenceId, context: ActorContext[Command[_]
       context.log.debug(s"活跃定时器收到命令$cmd")
       cmd match {
         case ScheduleAdd(actionId, body, expire, timestamp, replyTo) =>
-          Effect.persist(ScheduleAdded(actionId, body, expire, timestamp)).thenReply(replyTo)(_ => Succeeded)
+          Effect.persist(ScheduleAdded(actionId, body, expire, timestamp)).thenReply(replyTo)(_ => OperationResult(actionId))
         case ScheduleDel(actionId, replyTo) =>
-          Effect.persist(ScheduleDeleted(actionId)).thenReply(replyTo)(_ => Succeeded)
+          Effect.persist(ScheduleDeleted(actionId)).thenReply(replyTo)(_ => OperationResult(actionId))
       }
     }
 

@@ -2,14 +2,11 @@ package com.zhongfei.scheduler.network
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import com.zhongfei.scheduler.command.SchedulerCommand
-import com.zhongfei.scheduler.command.SchedulerCommand.{HeartBeat, Unregister, Unregistered}
 import com.zhongfei.scheduler.network.ApplicationManager.{Command, GroupTerminated}
+import com.zhongfei.scheduler.network.ServerDispatcher.{HeartBeat, Unregister, Unregistered}
 import com.zhongfei.scheduler.options.SingletonOption
 object ApplicationManager{
-  trait Message
-  trait Command extends Message
-  trait Event extends Message
+  trait Command
   //应用组关闭事件
   case class GroupTerminated(appGroupName:String) extends Command
   def apply(option:SingletonOption): Behavior[Command] = Behaviors.setup(context => new ApplicationManager(option,context).manage(Map.empty))

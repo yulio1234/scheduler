@@ -2,13 +2,12 @@ package com.zhongfei.scheduler.network
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import com.zhongfei.scheduler.command.SchedulerCommand.{HeartBeat, Unregister, Unregistered}
 import com.zhongfei.scheduler.network.ApplicationGroup.ApplicationTerminated
+import com.zhongfei.scheduler.network.ServerDispatcher.{HeartBeat, Unregister, Unregistered}
 import com.zhongfei.scheduler.options.SingletonOption
 
 object ApplicationGroup{
   trait Command
-  trait Event
   case class ApplicationTerminated(uri:String) extends Command
   /**
    * 应用组

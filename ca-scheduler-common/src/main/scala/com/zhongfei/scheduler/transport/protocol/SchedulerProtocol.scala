@@ -13,7 +13,6 @@ object SchedulerProtocol{
                   val version:Byte=version,
                   val protocolType:Byte,
                   val actionId:Long,
-                  val actionType:Byte,
                   val timestamp:Long,
                   val length:Short = 0,
                   val content:Array[Byte] = null
@@ -21,22 +20,21 @@ object SchedulerProtocol{
   //请求协议
   case class Request(
                       override val actionId:Long,
-                      override val actionType:Byte,
+                      val actionType:Byte,
                       expire:Long = -1,
                       override val timestamp:Long = System.currentTimeMillis(),
                       override val length:Short = 0,
                       override val content:Array[Byte] = null
-                     ) extends Protocol(protocolType = ProtocolTypeEnum.Request.id.toByte,actionId = actionId,actionType = actionType,timestamp = timestamp)
+                     ) extends Protocol(protocolType = ProtocolTypeEnum.Request.id.toByte,actionId = actionId,timestamp = timestamp)
   //响应协议
   case class Response(
                        override val actionId:Long,
-                       override val actionType:Byte,
                        success:Boolean=true,
                        errorCode:Byte = -1,
                        override val timestamp:Long = System.currentTimeMillis(),
                        override val length:Short = 0,
                        override val content:Array[Byte] = null
-                     ) extends Protocol(protocolType = ProtocolTypeEnum.Response.id.toByte,actionId = actionId,actionType = actionType,timestamp = timestamp)
+                     ) extends Protocol(protocolType = ProtocolTypeEnum.Response.id.toByte,actionId = actionId,timestamp = timestamp)
   //魔数
   val magic:Byte = 0x0079
   //版本号

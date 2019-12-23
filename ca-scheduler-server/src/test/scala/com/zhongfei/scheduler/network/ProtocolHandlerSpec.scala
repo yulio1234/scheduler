@@ -1,7 +1,6 @@
 package com.zhongfei.scheduler.network
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
-import com.zhongfei.scheduler.command.SchedulerCommand.{HeartBeat, Unregister}
 import com.zhongfei.scheduler.network.codec.RequestProtocolHandlerFactory
 import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.{ActionTypeEnum, Request}
 import org.scalatest.WordSpecLike

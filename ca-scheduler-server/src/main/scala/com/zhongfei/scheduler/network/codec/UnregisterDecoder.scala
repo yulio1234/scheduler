@@ -1,6 +1,5 @@
 package com.zhongfei.scheduler.network.codec
 
-import com.zhongfei.scheduler.command.SchedulerCommand.{HeartBeat, Unregister}
 import com.zhongfei.scheduler.network.ServerDispatcher.Command
 import com.zhongfei.scheduler.transport.Peer
 import com.zhongfei.scheduler.transport.codec.RequestProtocolDecoder
