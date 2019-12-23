@@ -49,7 +49,7 @@ object TimerEntity {
   final case class ScheduleDeleted(actionId: Long) extends Event
 
   final case class TimerActive(timer:Timer,replyTo:ActorRef[OperationResult]) extends Command[OperationResult]
-  final case class TimerActived(timer: Timer)
+  final case class TimerActived(timer: Timer) extends Event
 
 
   def apply(persistenceId: PersistenceId): Behavior[Command[_]] = Behaviors.setup { context => new TimerEntity(persistenceId, context).timer()
@@ -73,6 +73,7 @@ class TimerEntity(persistenceId: PersistenceId, context: ActorContext[Command[_]
           context.log.debug("重放完成，将初始化定时器转换为活跃定时器")
           val activeState = ActiveTimer(TimingWheelStorage())
           state.fetchEvent().foreach(activeState.applyEvent)
+          context.self ! TimerActive(state,null)
       }
 
     }
@@ -80,25 +81,28 @@ class TimerEntity(persistenceId: PersistenceId, context: ActorContext[Command[_]
 
 
   case class InitializeTimer(storage: Map[Long, Event]) extends Timer {
-    override def applyCommand(cmd: Command[_]): ReplyEffect[Event, Timer] = cmd match {
-      case ScheduleAdd(actionId, body, expire, timestamp, replyTo) =>
-        Effect.persist(ScheduleAdded(actionId, body, expire, timestamp)).thenReply(replyTo)(_ => Succeeded)
-      case ScheduleDel(actionId, replyTo) =>
-        Effect.persist(ScheduleDeleted(actionId)).thenReply(replyTo)(_ => Succeeded)
-      case TimerActive(timer,replyTo) =>Effect.persist(TimerActived(timer)).thenNoReply()
+    override def applyCommand(cmd: Command[_]): ReplyEffect[Event, Timer] = {
+      context.log.debug(s"初始化定时器接收到命令,$cmd")
+      cmd match {
+        case ScheduleAdd(actionId, body, expire, timestamp, replyTo) =>
+          Effect.persist(ScheduleAdded(actionId, body, expire, timestamp)).thenReply(replyTo)(_ => Succeeded)
+        case ScheduleDel(actionId, replyTo) =>
+          Effect.persist(ScheduleDeleted(actionId)).thenReply(replyTo)(_ => Succeeded)
+        case TimerActive(timer,replyTo) =>Effect.persist(TimerActived(timer)).thenNoReply()
+      }
     }
 
+
     override def applyEvent(event: Event): Timer = {
-      context.log.debug("初始化定时器接收到事件")
+      context.log.debug(s"初始化定时器接收到事件,$event")
       event match {
         case add@ScheduleAdded(actionId, body, expire, timestamp) =>
           copy(storage + (actionId -> add))
         case ScheduleDeleted(actionId) =>
           copy(storage - actionId)
-        case TimerActive(timer) =>
+        case TimerActived(timer) =>
           context.log.debug("将状态转换为活跃定时器")
           timer
-
       }
     }
 
@@ -107,16 +111,19 @@ class TimerEntity(persistenceId: PersistenceId, context: ActorContext[Command[_]
   }
 
   case class ActiveTimer(timerStorage: TimingWheelStorage) extends Timer {
-    override def applyCommand(cmd: Command[_]): ReplyEffect[Event, Timer] = cmd match {
-      case ScheduleAdd(actionId, body, expire, timestamp, replyTo) =>
-        context.log.debug("活跃定时器收到定时增加任务")
-        Effect.persist(ScheduleAdded(actionId, body, expire, timestamp)).thenReply(replyTo)(_ => Succeeded)
-      case ScheduleDel(actionId, replyTo) =>
-        context.log.debug("活跃定时器收到定期删除任务")
-        Effect.persist(ScheduleDeleted(actionId)).thenReply(replyTo)(_ => Succeeded)
+    override def applyCommand(cmd: Command[_]): ReplyEffect[Event, Timer] = {
+      context.log.debug(s"活跃定时器收到命令$cmd")
+      cmd match {
+        case ScheduleAdd(actionId, body, expire, timestamp, replyTo) =>
+          Effect.persist(ScheduleAdded(actionId, body, expire, timestamp)).thenReply(replyTo)(_ => Succeeded)
+        case ScheduleDel(actionId, replyTo) =>
+          Effect.persist(ScheduleDeleted(actionId)).thenReply(replyTo)(_ => Succeeded)
+      }
     }
 
-    override def applyEvent(event: Event): Timer = event match {
+    override def applyEvent(event: Event): Timer = {
+      context.log.debug(s"活跃定时器接收到事件$event")
+      event match {
         case ScheduleAdded(actionId, body, expire, timestamp) =>
           val realExpire = expire - (System.currentTimeMillis() - timestamp)
           timerStorage.save(ScheduleExecutor(actionId, realExpire, body))
@@ -125,6 +132,7 @@ class TimerEntity(persistenceId: PersistenceId, context: ActorContext[Command[_]
           timerStorage.delete(actionId)
           this
       }
+    }
 
     override def fetchEvent(): List[Event] = Nil
   }

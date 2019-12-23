@@ -8,7 +8,7 @@ import com.zhongfei.scheduler.timer.TimerEntity.{ScheduleAdd, ScheduleAddBody}
 import org.scalatest.WordSpecLike
 
 class TimerEntitySpec extends ScalaTestWithActorTestKit(s"""
-      akka.persistence.journal.plugin = "akka.persistence.journal.inmem"
+      akka.persistence.journal.plugin = "akka.persistence.journal.leveldb"
       akka.persistence.snapshot-store.plugin = "akka.persistence.snapshot-store.local"
       akka.persistence.snapshot-store.local.dir = "target/snapshot-${UUID.randomUUID().toString}"
     """) with WordSpecLike {
