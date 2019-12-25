@@ -2,7 +2,7 @@ package com.zhongfei.scheduler.network
 
 import java.net.InetSocketAddress
 
-import com.zhongfei.scheduler.network.codec.{RequestProtocolHandler, ResponseProtocolHandler}
+import com.zhongfei.scheduler.network.codec.{HeartBeatenToResponseEncoder, RequestProtocolHandler, ResponseProtocolHandler}
 import com.zhongfei.scheduler.transport.Node
 import com.zhongfei.scheduler.transport.codec.{SchedulerProtocolDecoder, SchedulerProtocolEncoder}
 import com.zhongfei.scheduler.utils.Lifecycle
@@ -30,6 +30,7 @@ class NettyServer(node: Node, requestProtocolHandler: RequestProtocolHandler, re
           .addLast(new SchedulerProtocolEncoder)
           .addLast(new RequestHandler(requestProtocolHandler))
           .addLast(new ResponseHandler(responseProtocolHandler))
+          .addLast(new HeartBeatenToResponseEncoder)
       }})
     .childOption(ChannelOption.TCP_NODELAY, Boolean.box(true))
     .childOption(ChannelOption.SO_KEEPALIVE, Boolean.box(true))

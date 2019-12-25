@@ -18,8 +18,8 @@ subprojects {
     dependencies {
         compile group: 'io.netty', name: 'netty-all', version: '4.1.43.Final'
         compile group: 'org.scala-lang', name: 'scala-library', version: '2.13.1'
-        compile group: 'com.typesafe.akka', name: 'akka-actor-typed_2.13', version: '2.6.0'
-        testCompile group: 'com.typesafe.akka', name: 'akka-actor-testkit-typed_2.13', version: '2.6.0'
+        compile group: 'com.typesafe.akka', name: 'akka-actor-typed_2.13', version: '2.6.1'
+        testCompile group: 'com.typesafe.akka', name: 'akka-actor-testkit-typed_2.13', version: '2.6.1'
         testCompile group: 'org.scalatest', name: 'scalatest_2.13', version: '3.0.8'
 
     }
@@ -42,11 +42,15 @@ project(":ca-scheduler-server"){
     dependencies{
         compile project(":ca-scheduler-common")
         compile group: 'org.rocksdb', name: 'rocksdbjni', version: '6.2.2'
-        compile group: 'org.fusesource.leveldbjni', name: 'leveldbjni-all', version: '1.8'
         compile group: 'com.typesafe.akka', name: 'akka-actor-typed_2.13', version: '2.6.1'
+        compile group: 'com.typesafe.akka', name: 'akka-serialization-jackson_2.13', version: '2.6.1'
+        compile group: 'com.typesafe.akka', name: 'akka-slf4j_2.13', version: '2.6.1'
         compile group: 'com.typesafe.akka', name: 'akka-cluster-typed_2.13', version: '2.6.1'
         compile group: 'com.typesafe.akka', name: 'akka-cluster-sharding-typed_2.13', version: '2.6.1'
         compile group: 'com.typesafe.akka', name: 'akka-persistence-typed_2.13' , version: '2.6.1'
+        compile group: 'com.typesafe.akka' , name: 'akka-persistence-query_2.13' ,version: '2.6.1'
+        compile group: 'com.typesafe.akka', name: 'akka-persistence-cassandra_2.13', version: '0.101'
+        testCompile group: 'com.typesafe.akka', name: 'akka-persistence-cassandra-launcher_2.13' , version: '0.101'
         testCompile group: 'com.typesafe.akka', name: 'akka-actor-testkit-typed_2.13', version: '2.6.1'
         testCompile group: 'org.scalatest', name: 'scalatest_2.13', version: '3.0.8'
         testCompile group: "ch.qos.logback" ,name: "logback-classic", version: '1.2.3'

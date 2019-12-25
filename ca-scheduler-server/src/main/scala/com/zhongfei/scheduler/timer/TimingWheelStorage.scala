@@ -4,11 +4,12 @@ import com.zhongfei.scheduler.utils.{Logging, ShutdownableThread}
 /**
  * 基于层级时间轮的调度仓库
  */
-object TimingWheelStorage{
-  def apply(reaperEnabled: Boolean = true,clockInterval:Long = 200L): TimingWheelStorage = new TimingWheelStorage()
+object TimingWheelStorage extends Logging {
+  def apply(reaperEnabled: Boolean = false,clockInterval:Long = 200L): TimingWheelStorage = new TimingWheelStorage(reaperEnabled,clockInterval)
 }
 
-class TimingWheelStorage(reaperEnabled: Boolean = true,clockInterval:Long = 200L) extends Operation[ScheduleExecutor] with Logging{
+class TimingWheelStorage(reaperEnabled: Boolean,clockInterval:Long) extends Operation[ScheduleExecutor] with Logging{
+  debug("实例化层级时间轮定时器:"+this)
   private val expirationReaper = new ExpiredOperationReaper()
   private[this] val timer:Timer = new SystemTimer("timingWheelTimer")
   private[this] var executors = Map.empty[Long,ScheduleExecutor]
@@ -21,8 +22,11 @@ class TimingWheelStorage(reaperEnabled: Boolean = true,clockInterval:Long = 200L
   /**
    * 如果默认启动
    */
-  if(reaperEnabled)
-    expirationReaper.start()
+  if(reaperEnabled) {
+    debug("初始化状态："+reaperEnabled)
+    start
+  }
+
 
   override def find(id: Long): ScheduleExecutor = {
     executors(id)
@@ -36,6 +40,10 @@ class TimingWheelStorage(reaperEnabled: Boolean = true,clockInterval:Long = 200L
       }
       case None => throw new NullPointerException(s"can not delete,this id is not fund:  $id")
     }
+  }
+  def start():Unit = {
+    debug("启动时间轮")
+    expirationReaper.start()
   }
   def shutdown():Unit = {
     timer.shutdown()

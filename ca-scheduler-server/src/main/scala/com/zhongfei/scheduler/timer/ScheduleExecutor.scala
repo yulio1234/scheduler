@@ -11,6 +11,6 @@ object ScheduleExecutor{
 }
 class ScheduleExecutor(val id:Long,override val delayMs: Long,scheduleAddBody: ScheduleAddBody) extends TimerTask with Logging {
   override def run(): Unit = {
-    info("schedule executor id is "+id)
+    debug(s"调度任务被触发，任务id=$id,body = $scheduleAddBody")
   }
 }

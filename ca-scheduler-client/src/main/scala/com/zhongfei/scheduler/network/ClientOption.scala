@@ -19,5 +19,6 @@ case class ClientOption(
                          transferRetryInterval: FiniteDuration = 500.millis,
                          transferTimeoutInterval:FiniteDuration = 3.seconds,
                          iniTimout: FiniteDuration = 2000.millis,
-                         reconnectInterval: FiniteDuration = 3.seconds
+                         reconnectInterval: FiniteDuration = 3.seconds,
+                         processWaitTime:FiniteDuration = 2.seconds
                        ) extends Option

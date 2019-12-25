@@ -2,21 +2,39 @@ package com.zhongfei.scheduler.network
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
-import com.zhongfei.scheduler.network.ApplicationManager.{Command, GroupTerminated}
-import com.zhongfei.scheduler.network.ServerDispatcher.{HeartBeat, Unregister, Unregistered}
-import com.zhongfei.scheduler.options.SingletonOption
+import com.zhongfei.scheduler.network.ApplicationManager._
+import com.zhongfei.scheduler.options.ServerOption
+import com.zhongfei.scheduler.transfer.{CommandReply, OperationResult}
+import com.zhongfei.scheduler.transport.Peer
 object ApplicationManager{
-  trait Command
+  sealed trait Command[Reply <: CommandReply] {
+    def replyTo: ActorRef[Reply]
+  }
+  //命令（请求）
+  //应用心跳检测请求
+  case class HeartBeat(actionId:Long,appName:String,peer: Peer,replyTo:ActorRef[OperationResult])
+    extends Command[OperationResult]  with ApplicationGroup.Command with Application.Command
+  //事件（响应）
+  case class HeartBeaten(actionId:Long) extends OperationResult
+  //应用取消注册成功
+  case class Unregistered(actionId:Long) extends OperationResult
+  //应用取消注册请求
+  case class Unregister(actionId:Long,appName:String,peer: Peer,replyTo:ActorRef[OperationResult])
+    extends Command[OperationResult]  with ApplicationGroup.Command with Application.Command
+  //查询应用集合
+  case class ApplicationListQuery(appName:String,replyTo:ActorRef[OperationResult]) extends Command[OperationResult] with ApplicationGroup.Command
+  //应用集合查询完毕
+  case class CurrentApplicationList(list: List[ActorRef[Application.Command]]) extends OperationResult
   //应用组关闭事件
-  case class GroupTerminated(appGroupName:String) extends Command
-  def apply(option:SingletonOption): Behavior[Command] = Behaviors.setup(context => new ApplicationManager(option,context).manage(Map.empty))
+  case class GroupTerminated(appGroupName:String,replyTo:ActorRef[Nothing]) extends Command[Nothing]
+  def apply(option:ServerOption): Behavior[Command[_]] = Behaviors.setup(context => new ApplicationManager(option,context).manage(Map.empty))
 }
 /**
  * 应用管理器
  * @param context
  */
-private class ApplicationManager(option:SingletonOption,context:ActorContext[Command]){
-  private def manage(appGroupMap:Map[String,ActorRef[ApplicationGroup.Command]]): Behavior[Command] = Behaviors.receiveMessage[Command]{
+private class ApplicationManager(option:ServerOption,context:ActorContext[Command[_]]){
+  private def manage(appGroupMap:Map[String,ActorRef[ApplicationGroup.Command]]): Behavior[Command[_]] = Behaviors.receiveMessage[Command[_]]{
       case command @ HeartBeat(_, appName,_,_) =>
         appGroupMap.get(appName) match {
             //如果有应用组就转发消息
@@ -28,7 +46,7 @@ private class ApplicationManager(option:SingletonOption,context:ActorContext[Com
             //创建应用组
             val appGroupActor = context.spawnAnonymous(ApplicationGroup(option,appName))
             //监听应用组关闭事件
-            context.watchWith(appGroupActor,GroupTerminated(appName))
+            context.watchWith(appGroupActor,GroupTerminated(appName,null))
             appGroupActor ! command
             manage(appGroupMap + (appName -> appGroupActor))
 
@@ -40,11 +58,20 @@ private class ApplicationManager(option:SingletonOption,context:ActorContext[Com
             actor ! command
             Behaviors.same
           case None =>
-            replyTo ! Unregistered(actionId)
+            replyTo !  Unregistered(actionId)
+            Behaviors.same
+        }
+      case query @ ApplicationListQuery(appName,replyTo) =>
+        appGroupMap.get(appName) match {
+          case Some(actorRef) =>
+            actorRef !  query
+            Behaviors.same
+          case None =>
+            replyTo ! CurrentApplicationList(Nil)
             Behaviors.same
         }
         //匹配应用组注销消息，并将数据清除
-      case GroupTerminated(appGroupName) =>
+      case GroupTerminated(appGroupName,_) =>
         context.log.info("接收到应用组注销消息：appGroupName : ",appGroupName)
         manage(appGroupMap - appGroupName)
   }

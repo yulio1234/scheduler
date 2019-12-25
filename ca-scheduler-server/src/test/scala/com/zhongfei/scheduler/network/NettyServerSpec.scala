@@ -7,17 +7,14 @@ import com.zhongfei.scheduler.transport.Node
 import io.netty.channel.ChannelFuture
 import org.scalatest.WordSpecLike
 
-class DispatchProcessorSpec extends ScalaTestWithActorTestKit with WordSpecLike {
-  "调度器" when {
-    "接收到网络请求" should {
+class NettyServerSpec  extends ScalaTestWithActorTestKit with WordSpecLike{
+  "nettyServer测试" when {
+    "发送网络请求" should {
       val node = Node("127.0.0.1", 2222)
       val actor = spawn(ServerDispatcher(ServerOption(node),null))
       val requestProtocolHandler = RequestProtocolHandlerFactory.create(actor)
       val responseProtocolHandler = ResponseProtocolHandlerFactory.create(actor)
-      "接收到心跳请求" in {
-
-      }
-      "测试netty服务端" in {
+      "发送心跳响应" in {
         val server = new NettyServer(node,requestProtocolHandler,responseProtocolHandler)
         server.init().addListener((future: ChannelFuture) => {
           info("链接结果："+future.isSuccess)
@@ -28,7 +25,4 @@ class DispatchProcessorSpec extends ScalaTestWithActorTestKit with WordSpecLike 
       }
     }
   }
-
-
 }
-

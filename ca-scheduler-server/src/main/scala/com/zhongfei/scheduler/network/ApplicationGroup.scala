@@ -3,8 +3,8 @@ package com.zhongfei.scheduler.network
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
 import com.zhongfei.scheduler.network.ApplicationGroup.ApplicationTerminated
-import com.zhongfei.scheduler.network.ServerDispatcher.{HeartBeat, Unregister, Unregistered}
-import com.zhongfei.scheduler.options.SingletonOption
+import com.zhongfei.scheduler.network.ApplicationManager.{ApplicationListQuery, CurrentApplicationList, HeartBeat, Unregister, Unregistered}
+import com.zhongfei.scheduler.options.ServerOption
 
 object ApplicationGroup{
   trait Command
@@ -14,9 +14,9 @@ object ApplicationGroup{
    * @param appName
    * @return
    */
-  def apply(option:SingletonOption,appName: String): Behavior[Command] = Behaviors.setup(context => new ApplicationGroup(option,context,appName).handle(Map.empty))
+  def apply(option:ServerOption,appName: String): Behavior[Command] = Behaviors.setup(context => new ApplicationGroup(option,context,appName).handle(Map.empty))
 }
-private class ApplicationGroup(option:SingletonOption,context:ActorContext[ApplicationGroup.Command],appName:String){
+private class ApplicationGroup(option:ServerOption,context:ActorContext[ApplicationGroup.Command],appName:String){
 
   def handle(appMap:Map[String,ActorRef[Application.Command]]):Behavior[ApplicationGroup.Command] = Behaviors.receiveMessage[ApplicationGroup.Command] {
         //处理应用注册消息
@@ -47,6 +47,11 @@ private class ApplicationGroup(option:SingletonOption,context:ActorContext[Appli
           case Some(appActor) => appActor ! unregister
           case None => reply ! Unregistered(actionId)
         }
+        Behaviors.same
+        //查询注册的应用列表
+      case ApplicationListQuery(_, replyTo) =>
+        val list:List[ActorRef[Application.Command]] = appMap.values.toList
+        replyTo ! CurrentApplicationList(list)
         Behaviors.same
       case ApplicationTerminated(uri) =>
         val map = appMap - uri

@@ -1,9 +1,14 @@
 package com.zhongfei.scheduler.network
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
-import akka.actor.typed.{ActorRef, Behavior}
-import com.zhongfei.scheduler.network.ServerDispatcher.{Command, HeartBeat, OperationResult, Unregister}
-import com.zhongfei.scheduler.options.SingletonOption
+import akka.actor.typed.{ActorRef, ActorSystem, Behavior}
+import akka.cluster.sharding.typed.scaladsl.ClusterSharding
+import com.zhongfei.scheduler.network.ApplicationManager.{HeartBeat, Unregister}
+import com.zhongfei.scheduler.network.ServerDispatcher.{Command, WrappedHeartBeat, WrappedScheduleAdd, WrappedUnregister}
+import com.zhongfei.scheduler.options.ServerOption
+import com.zhongfei.scheduler.timer.TimerEntity
+import com.zhongfei.scheduler.timer.TimerEntity.{ScheduleAdd, ScheduleDel}
+import com.zhongfei.scheduler.transfer.{OperationResult, Transfer}
 import com.zhongfei.scheduler.transport.Peer
 
 /**
@@ -11,58 +16,44 @@ import com.zhongfei.scheduler.transport.Peer
  */
 object ServerDispatcher {
 
-  sealed trait Command[Reply <: CommandReply] {
-    def replyTo: ActorRef[Reply]
-  }
-  //返回的命令类型
-  sealed trait CommandReply
+  sealed trait Command
+  case class WrappedHeartBeat(heartBeat: HeartBeat) extends Command
+  case class WrappedScheduleAdd(scheduleAdd: ScheduleAdd) extends Command
+  case class WrappedScheduleDel(scheduleDel: ScheduleDel) extends Command
+  case class WrappedUnregister(unregister: Unregister) extends Command
 
-  sealed trait OperationResult extends CommandReply with ApplicationDispatcher.Command
-  //命令（请求）
-  //应用心跳检测请求
-  case class HeartBeat(actionId:Long,appName:String,peer: Peer,replyTo:ActorRef[OperationResult])
-    extends Command[OperationResult] with ApplicationManager.Command with ApplicationGroup.Command with Application.Command
-  //应用取消注册请求
-  case class Unregister(actionId:Long,appName:String,peer: Peer,replyTo:ActorRef[OperationResult])
-    extends Command[OperationResult] with ApplicationManager.Command with ApplicationGroup.Command with Application.Command
-
-  //事件（响应）
-  case class HeartBeaten(actionId:Long) extends OperationResult
-  //应用取消注册成功
-  case class Unregistered(actionId:Long) extends OperationResult
-
-  final case class ScheduleAdd(actionId: Long, body: ScheduleAddBody, expire: Long, timestamp: Long,peer: Peer, replyTo: ActorRef[OperationResult])
-    extends Command[OperationResult] with TimerDispatcher.Command
-
-  case class ScheduleAddBody(appName: String, eventName: String, extra: String)
-  //与应用通讯的消息的消息
-  def apply(option: SingletonOption): Behavior[Command[_]] = Behaviors.setup{ context => new ServerDispatcher(option,context).process()}
+  def apply(option: ServerOption,system:ActorSystem[Nothing]): Behavior[Command] = Behaviors.setup{ context => new ServerDispatcher(option,context,system).process()}
 }
 
 /**
  * 全局消息处理器，负责分发各种消息
  * @param option
  */
-private class ServerDispatcher(option:SingletonOption, context:ActorContext[Command[_]])  {
+private class ServerDispatcher(option:ServerOption, context:ActorContext[Command],system:ActorSystem[Nothing])  {
   //创建应用管理者
   val applicationManager = context.spawn(ApplicationManager(option),"applicationManager")
-
   // TODO:  进行查询数据保存
-  def process(): Behavior[Command[_]] = Behaviors.receiveMessage[Command[_]]{message => {
+  def process(): Behavior[Command] = Behaviors.receiveMessage[Command]{message => {
     message match {
-      case heartbeat @ HeartBeat(_, _, peer:Peer,_) =>
-        val actorRef: ActorRef[OperationResult] = buildExtra(message, peer)
+      case WrappedHeartBeat(heartBeat) =>
+        val actorRef = context.spawnAnonymous(Transfer(option, heartBeat.peer, message))
         //转发给应用管理器
-        applicationManager ! heartbeat.copy(replyTo = actorRef)
+        applicationManager ! heartBeat.copy(replyTo = actorRef)
         Behaviors.same
-        //匹配注销应用请求，并转发
-      case unregister @ Unregister(_,_,peer,_) =>
-        val actorRef = buildExtra(message, peer)
+        //匹配注销应用请求
+      case WrappedUnregister(unregister) =>
+        val actorRef = context.spawnAnonymous(Transfer(option, unregister.peer, message))
         applicationManager ! unregister.copy(replyTo = actorRef)
+        Behaviors.same
+      case WrappedScheduleAdd(scheduleAdd) =>
+        val clusterSharding: ClusterSharding = ClusterSharding(system)
+        val actorRef = context.spawnAnonymous(Transfer(option, scheduleAdd.peer, message))
+        val timerRef = clusterSharding.entityRefFor(TimerEntity.timerTypeKey, scheduleAdd.body.appName)
+        timerRef ! scheduleAdd.copy(replyTo = actorRef)
         Behaviors.same
     }
   }}
-  def buildExtra(command:Command[_],peer: Peer): ActorRef[OperationResult] ={
-    context.spawnAnonymous(ApplicationDispatcher(option, peer, command))
+  def buildTransfer(command:Command,peer: Peer): ActorRef[OperationResult] ={
+    context.spawnAnonymous(Transfer(option, peer, command))
   }
 }

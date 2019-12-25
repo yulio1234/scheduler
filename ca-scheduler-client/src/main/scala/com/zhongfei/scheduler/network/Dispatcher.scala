@@ -2,11 +2,9 @@ package com.zhongfei.scheduler.network
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
-import com.alibaba.fastjson.JSON
 import com.zhongfei.scheduler.Exception.SchedulerExceptionFactory
 import com.zhongfei.scheduler.network.Dispatcher._
 import com.zhongfei.scheduler.transport.Peer
-import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.{ActionTypeEnum, Request}
 import com.zhongfei.scheduler.utils.IDGenerator
 import io.netty.channel.ChannelFuture
 
@@ -42,12 +40,10 @@ class Dispatcher(option: ClientOption,  timers: TimerScheduler[Message],context:
     //发送心跳请求
     case heartBeat: HeartBeat =>
       context.log.debug(s"收到心跳发送请求，发送心跳消息：$heartBeat")
-      val bytes = heartBeat.appName.getBytes()
-      val request = Request(actionId = heartBeat.actionId, actionType = ActionTypeEnum.HeartBeat.id.toByte, length = bytes.length.toShort, content = bytes)
       //接收请求后，定义超时检查
       timers.startSingleTimer("Timeout"+heartBeat.actionId,Timeout(heartBeat.actionId),option.transferTimeoutInterval)
       //发送请求
-      heartBeat.peer.channel.writeAndFlush(request).addListener((future: ChannelFuture) => {
+      heartBeat.peer.send(heartBeat).addListener((future: ChannelFuture) => {
         //通讯失败就返回
         if (!future.isSuccess) {
           val exception = SchedulerExceptionFactory.NetworkTransferException(cause = future.cause())
@@ -76,13 +72,11 @@ class Dispatcher(option: ClientOption,  timers: TimerScheduler[Message],context:
     case scheduleAdd: ScheduleAdd =>
       context.log.debug(s"收到调度器添加发送请求，发送调度消息：$scheduleAdd")
       //解析协议body
-      val body:String = JSON.toJSONString(scheduleAdd.body)
-      val bytes = body.getBytes
-      val request = Request(actionId = scheduleAdd.actionId, actionType = ActionTypeEnum.ScheduleAdd.id.toByte, length = bytes.length.toShort, content = bytes)
+
       //接收请求后，定义超时检查
       timers.startSingleTimer("Timeout"+scheduleAdd.actionId,Timeout(scheduleAdd.actionId),option.transferTimeoutInterval)
       //发送请求
-      scheduleAdd.peer.channel.writeAndFlush(request).addListener((future: ChannelFuture) => {
+      scheduleAdd.peer.send(scheduleAdd).addListener((future: ChannelFuture) => {
         //通讯失败就返回
         if (!future.isSuccess) {
           val exception = SchedulerExceptionFactory.NetworkTransferException(cause = future.cause())

@@ -3,8 +3,8 @@ package com.zhongfei.scheduler.network
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
 import com.zhongfei.scheduler.network.Application.{ChannelClose, CheckHeatBeatTime, Command}
-import com.zhongfei.scheduler.network.ServerDispatcher.{HeartBeat, HeartBeaten, Unregister, Unregistered}
-import com.zhongfei.scheduler.options.SingletonOption
+import com.zhongfei.scheduler.network.ApplicationManager.{HeartBeat, HeartBeaten, Unregister, Unregistered}
+import com.zhongfei.scheduler.options.ServerOption
 import com.zhongfei.scheduler.transport.Peer
 import io.netty.channel.ChannelFuture
 
@@ -13,7 +13,7 @@ object Application{
   trait Command
   case object CheckHeatBeatTime extends Command
   case object ChannelClose extends Command
-  def apply(option:SingletonOption,peer: Peer): Behavior[Command] = Behaviors.setup{context => Behaviors.withTimers{timers => new Application(option,peer,timers,context).handle(null)}}
+  def apply(option:ServerOption,peer: Peer): Behavior[Command] = Behaviors.setup{context => Behaviors.withTimers{timers => new Application(option,peer,timers,context).handle(null)}}
 }
 
 /**
@@ -22,7 +22,7 @@ object Application{
  * @param timers 调度器
  * @param context actor上下文
  */
-private class Application(option:SingletonOption,peer: Peer, timers: TimerScheduler[Command], context:ActorContext[Application.Command]){
+private class Application(option:ServerOption,peer: Peer, timers: TimerScheduler[Command], context:ActorContext[Application.Command]){
   timers.startTimerAtFixedRate(CheckHeatBeatTime,CheckHeatBeatTime,option.checkHeartbeatInterval)
   private val self: ActorRef[Command] = context.self
   //
