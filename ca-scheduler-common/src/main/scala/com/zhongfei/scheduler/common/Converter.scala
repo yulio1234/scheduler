@@ -1,4 +1,4 @@
-package com.zhongfei.scheduler
+package com.zhongfei.scheduler.common
 
 /**
  * 数据转换器

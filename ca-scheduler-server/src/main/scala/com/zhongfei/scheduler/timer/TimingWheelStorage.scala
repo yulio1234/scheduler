@@ -17,7 +17,9 @@ class TimingWheelStorage(reaperEnabled: Boolean,clockInterval:Long) extends Oper
     executors += executor.id -> executor
     timer.add(executor)
   }
-
+  def hasTimer(id:Long):Boolean = {
+    executors.contains(id)
+  }
 
   /**
    * 如果默认启动

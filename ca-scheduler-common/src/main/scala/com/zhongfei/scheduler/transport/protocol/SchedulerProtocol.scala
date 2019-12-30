@@ -1,6 +1,6 @@
 package com.zhongfei.scheduler.transport.protocol
 
-import com.zhongfei.scheduler.Message
+import com.zhongfei.scheduler.common.Message
 
 
 /**
@@ -54,6 +54,6 @@ object SchedulerProtocol{
    * 动作类型enum
    */
   object ActionTypeEnum extends Enumeration {
-    val HeartBeat,Unregister,ScheduleAdd,ScheduleDel,ScheduleDone,ActiveServerFetch = Value
+    val HeartBeat,Unregister,ScheduleAdd,ScheduleDel,ScheduleExpire,ActiveServerFetch = Value
   }
 }

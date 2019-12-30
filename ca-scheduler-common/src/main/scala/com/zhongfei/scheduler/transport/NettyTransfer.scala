@@ -3,7 +3,7 @@ package com.zhongfei.scheduler.transport
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import akka.actor.typed.{Behavior, PostStop}
 import com.zhongfei.scheduler.Exception.SchedulerExceptionFactory.NetworkTransferException
-import com.zhongfei.scheduler.Processor
+import com.zhongfei.scheduler.common.Processor
 import com.zhongfei.scheduler.transport.NettyTransfer._
 import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.{Request, Response}
 import io.netty.channel.{Channel, ChannelFuture}

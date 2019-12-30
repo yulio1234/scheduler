@@ -5,6 +5,7 @@ import akka.actor.typed.{ActorRef, Behavior}
 import com.zhongfei.scheduler.network.Dispatcher.{HeartBeat, HeartBeaten, Unregister}
 import com.zhongfei.scheduler.network.SchedulerConnection._
 import com.zhongfei.scheduler.network.SchedulerConnectionManager.{Event => _, Message => _, apply => _, _}
+import com.zhongfei.scheduler.transport.protocol.ApplicationOption
 import com.zhongfei.scheduler.transport.{Node, Peer}
 import com.zhongfei.scheduler.utils.IDGenerator
 import io.netty.channel.ChannelFuture
@@ -109,7 +110,7 @@ class SchedulerConnection(option: ClientOption,
         //定时检测是否在线
         timers.startTimerWithFixedDelay(CheckHeartBeatIntervalTimeout, CheckHeartBeatIntervalTimeout, option.checkHeartBeatOnCloseInterval)
         //初始化成功后立即发送心跳
-        dispatcher ! HeartBeat(IDGenerator.next(), option.appName, peer, heartBeatenAdapter)
+        dispatcher ! HeartBeat(IDGenerator.next(),ApplicationOption( option.appName,option.processWaitTime), peer, heartBeatenAdapter)
         //并通知管理器服务已经上线
         manager ! Connected(node.uri(), context.self)
         context.log.debug(s"服务器节点：$node，链接成功，转换为上线状态")
@@ -149,7 +150,7 @@ class SchedulerConnection(option: ClientOption,
     //定时向服务器发送心跳请求
     case SendHeatBeat =>
       context.log.debug(s"服务器节点：$node，服务已在线，发送心跳请求")
-      dispatcher ! HeartBeat(IDGenerator.next(), option.appName, peer, heartBeatenAdapter)
+      dispatcher ! HeartBeat(IDGenerator.next(),ApplicationOption( option.appName,option.processWaitTime),peer, heartBeatenAdapter)
       Behaviors.same
     //收到心跳请求后，处理
     case WrappedHeartBeaten(response) if response.isInstanceOf[HeartBeaten] =>
@@ -202,7 +203,7 @@ class SchedulerConnection(option: ClientOption,
     //定时向服务器发送心跳请求
     case SendHeatBeat =>
       context.log.warn(s"服务器节点：$node，服务端无法链接，正在心跳请求：$peer")
-      dispatcher ! HeartBeat(IDGenerator.next(), option.appName, peer, heartBeatenAdapter)
+      dispatcher ! HeartBeat(IDGenerator.next(),ApplicationOption( option.appName,option.processWaitTime), peer, heartBeatenAdapter)
       Behaviors.same
     case WrappedHeartBeaten(response) if response.isInstanceOf[HeartBeaten] =>
       context.log.debug(s"服务器节点：$node，服务端通讯恢复，重新设置为上线状态：$response")

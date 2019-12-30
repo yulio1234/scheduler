@@ -5,6 +5,7 @@ import akka.actor.typed.{ActorRef, Behavior}
 import com.zhongfei.scheduler.Exception.SchedulerExceptionFactory
 import com.zhongfei.scheduler.network.Dispatcher._
 import com.zhongfei.scheduler.transport.Peer
+import com.zhongfei.scheduler.transport.protocol.ApplicationOption
 import com.zhongfei.scheduler.utils.IDGenerator
 import io.netty.channel.ChannelFuture
 
@@ -14,7 +15,7 @@ object Dispatcher {
   case class Timeout(actionId:Long) extends Message
   //命令（请求）
   //应用心跳检测请求
-  case class HeartBeat(actionId: Long = IDGenerator.next(), appName: String, peer: Peer, replyTo: ActorRef[HeartBeaten]) extends Message
+  case class HeartBeat(actionId: Long = IDGenerator.next(),applicationOption: ApplicationOption, peer: Peer, replyTo: ActorRef[HeartBeaten]) extends Message
   //心跳事件（响应）
   case class HeartBeaten(actionId: Long,success:Boolean,cause:Throwable,peer: Peer) extends Message
 
@@ -22,8 +23,8 @@ object Dispatcher {
   case class Unregister(actionId: Long, appName: String) extends Message
   //应用取消注册响应
   case class Unregistered(actionId: Long,success:Boolean,cause:Throwable,peer: Peer) extends Message
-  case class ScheduleAdd(actionId:Long,body:ScheduleAddBody,expire:Long,peer: Peer,replyTo: ActorRef[ScheduleAdded]) extends Message
-  case class ScheduleAddBody(appName:String,eventName:String,extra:String)
+  case class ScheduleAdd(actionId:Long,body:ScheduleBody,expire:Long,peer: Peer,replyTo: ActorRef[ScheduleAdded]) extends Message
+  case class ScheduleBody(id:Long,domain:String,eventName:String,extra:String)
   case class ScheduleAdded(actionId:Long,success:Boolean,cause:Throwable,peer: Peer) extends Message
 
   case class ActorTerminate(id: Long) extends Message

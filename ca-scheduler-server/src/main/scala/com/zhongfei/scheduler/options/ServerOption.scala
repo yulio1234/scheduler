@@ -1,6 +1,6 @@
 package com.zhongfei.scheduler.options
 
-import com.zhongfei.scheduler.Option
+import com.zhongfei.scheduler.common.Option
 import com.zhongfei.scheduler.transport.Node
 
 import scala.concurrent.duration._
