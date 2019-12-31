@@ -10,6 +10,7 @@ import scala.concurrent.duration._
  *
  */
 case class ServerOption(node: Node,
+                        scheduleActionInterval:FiniteDuration = 2.seconds,
                         checkHeartbeatInterval: FiniteDuration = 6.seconds,
                         checkHeartBeatOnCloseInterval: FiniteDuration = 10.seconds,
                         transferRetryCount: Int = 3,

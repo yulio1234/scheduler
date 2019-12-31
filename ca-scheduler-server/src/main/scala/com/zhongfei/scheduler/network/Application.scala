@@ -6,7 +6,8 @@ import com.zhongfei.scheduler.network.Application.{ChannelClose, CheckHeatBeatTi
 import com.zhongfei.scheduler.network.ApplicationManager.{ApplicationRef, HeartBeat, HeartBeaten, SelectAnApplication, Unregister, Unregistered}
 import com.zhongfei.scheduler.network.ServerDispatcher.WrappedScheduleExpire
 import com.zhongfei.scheduler.options.ServerOption
-import com.zhongfei.scheduler.timer.TimerEntity.ScheduleExpire
+import com.zhongfei.scheduler.timer.TimerEntity.{ScheduleBody, ScheduleExpire}
+import com.zhongfei.scheduler.transfer.OperationResult
 import com.zhongfei.scheduler.transport.Peer
 import com.zhongfei.scheduler.transport.protocol.ApplicationOption
 import io.netty.channel.ChannelFuture
@@ -14,6 +15,9 @@ import io.netty.channel.ChannelFuture
 import scala.concurrent.duration._
 object Application{
   trait Command
+  case class ScheduleExpire(scheduleBody: ScheduleBody,replyTo:ActorRef[OperationResult])
+  case object Success extends OperationResult
+  case object Failure extends OperationResult
   case object CheckHeatBeatTime extends Command
   case object ChannelClose extends Command
   def apply(option:ServerOption,applicationOption: ApplicationOption,peer: Peer,dispatcher : ActorRef[WrappedScheduleExpire]): Behavior[Command] = Behaviors.setup{context => Behaviors.withTimers{timers => new Application(option,dispatcher,peer,timers,context).handle(Deadline.now.time,applicationOption)}}

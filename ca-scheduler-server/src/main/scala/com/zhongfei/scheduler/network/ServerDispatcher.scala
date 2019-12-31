@@ -7,7 +7,7 @@ import com.zhongfei.scheduler.network.ApplicationManager.{HeartBeat, Unregister}
 import com.zhongfei.scheduler.network.ServerDispatcher._
 import com.zhongfei.scheduler.options.ServerOption
 import com.zhongfei.scheduler.timer.TimerEntity
-import com.zhongfei.scheduler.timer.TimerEntity.{ScheduleAdd, ScheduleDel, ScheduleExpire}
+import com.zhongfei.scheduler.timer.TimerEntity.{ScheduleAdd, ScheduleDel, ScheduleExpire, ScheduleExpired}
 import com.zhongfei.scheduler.transfer.{OperationResult, Transfer}
 import com.zhongfei.scheduler.transport.Peer
 
@@ -23,7 +23,7 @@ object ServerDispatcher {
   case class WrappedUnregister(unregister: Unregister) extends Command
   case class WrappedScheduleExpire(scheduleExpire: ScheduleExpire,peer: Peer) extends Command
   case class WrappedScheduleExpired(scheduleExpired: ScheduleExpired,peer: Peer) extends Command
-  case class ScheduleExpired(id:Long)
+
   def apply(option: ServerOption,system:ActorSystem[Nothing]): Behavior[Command] = Behaviors.setup{ context => new ServerDispatcher(option,context,system).process(Map.empty)}
 }
 
