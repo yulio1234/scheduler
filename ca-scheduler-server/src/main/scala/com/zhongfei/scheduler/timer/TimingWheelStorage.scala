@@ -40,7 +40,7 @@ class TimingWheelStorage(reaperEnabled: Boolean,clockInterval:Long) extends Oper
         v.cancel()
         executors -= id
       }
-      case None => throw new NullPointerException(s"can not delete,this id is not fund:  $id")
+      case None =>
     }
   }
   def start():Unit = {

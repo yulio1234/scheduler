@@ -4,6 +4,7 @@ import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
 import com.zhongfei.scheduler.network.ServerDispatcher
 import com.zhongfei.scheduler.options.ServerOption
+import com.zhongfei.scheduler.timer.TimerEntity.Success
 import com.zhongfei.scheduler.transfer.Transfer.{Command, Done, Retry, Timeout}
 import com.zhongfei.scheduler.transport.Peer
 import io.netty.channel.ChannelFuture
@@ -18,15 +19,15 @@ object Transfer {
 
   trait Command
 
-  case class Done(success: Boolean, retryCount: Int, cause: Throwable, message: Command) extends Command
+  case class Done(success: Boolean, retryCount: Int, cause: Throwable, message: ServerDispatcher.Command) extends Command
 
   case class Retry(done: Done) extends Command
 
   case object Timeout extends Command
 
-  def apply(option: ServerOption, peer: Peer, message: ServerDispatcher.Command): Behavior[Command] = Behaviors.setup { context =>
+  def apply(option: ServerOption, peer: Peer,command: ServerDispatcher.Command): Behavior[Command] = Behaviors.setup { context =>
     Behaviors.withTimers { timer =>
-      new Transfer(option, peer, timer, message, context).process()
+      new Transfer(option,peer, timer,command , context).process()
     }
   }
 }
@@ -40,10 +41,11 @@ private class Transfer(option: ServerOption, peer: Peer, timers: TimerScheduler[
   def process(): Behavior[Command] = Behaviors.receiveMessage[Command] { message =>
     val self = context.self
     message match {
-      case message if message.isInstanceOf[OperationResult] =>
+      case  command: ServerDispatcher.Command =>
         context.log.info(s"发送操作响应，actionId=$command")
-        send(option.transferRetryCount, message, self)
+        send(option.transferRetryCount, command, self)
         Behaviors.same
+
       case Timeout =>
         context.log.error("应用处理超时,关闭应用分发器")
         Behaviors.stopped
@@ -66,8 +68,8 @@ private class Transfer(option: ServerOption, peer: Peer, timers: TimerScheduler[
     }
   }
 
-  def send(retryCount: Int, message: Command, actorRef: ActorRef[Command]): Unit = {
-    peer.channel.writeAndFlush(message).addListener((future: ChannelFuture) => {
+  def send(retryCount: Int, message: ServerDispatcher.Command, actorRef: ActorRef[Command]): Unit = {
+    peer.channel.writeAndFlush(command).addListener((future: ChannelFuture) => {
       actorRef ! Done(future.isSuccess, option.transferRetryCount, future.cause(), message)
     })
   }

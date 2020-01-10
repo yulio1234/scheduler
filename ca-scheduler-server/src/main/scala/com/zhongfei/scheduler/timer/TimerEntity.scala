@@ -1,6 +1,6 @@
 package com.zhongfei.scheduler.timer
 
-import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
+import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.cluster.sharding.typed.scaladsl.EntityTypeKey
 import akka.persistence.typed.scaladsl.{Effect, EventSourcedBehavior, ReplyEffect}
@@ -37,17 +37,25 @@ object TimerEntity {
   final case class ScheduleAdd(body: ScheduleBody, expire: Long, timestamp: Long,peer: Peer, replyTo: ActorRef[OperationResult])
     extends Command
   //调度消息到期，立即执行
-  case class ScheduleDo(body:ScheduleBody,replyTo:ActorRef[OperationResult]) extends Command
+  case class ScheduleDo(id:Long) extends Command
   //调度消息发送失败，重新执行，
   case class ScheduleRedo(body:ScheduleBody) extends Command
   case class ScheduleDone(id:Long) extends Event
   case class ScheduleBody(id:Long,domain: String, eventName: String, extra: String)
+  case object ScheduleAction extends Command
   //到期事件
   case class ScheduleExpire(body:ScheduleBody) extends Command
     with ApplicationManager.Command with ApplicationGroup.Command with Application.Command with ServerDispatcher.Command
   //到期事件响应
   case class ScheduleExpired(body:ScheduleBody) extends Event
-  case class ScheduleContext(body:ScheduleBody,lastActionTimer:Deadline)
+
+  /**
+   *
+   * @param body 调度消息体
+   * @param nextActionTimer 必须执行时间，也就是到这个时间之后，必须执行
+   * @param actioning 是否在执行中，如果在执行中，就不再执行
+   */
+  case class ScheduleContext(body:ScheduleBody,var nextActionTimer:Deadline,var actioning:Boolean = false)
   final case class ScheduleDel(id: Long, peer: Peer,replyTo: ActorRef[OperationResult]) extends Command
 
   sealed trait Event extends CborSerializable
@@ -56,7 +64,11 @@ object TimerEntity {
 
   final case class ScheduleDeleted(id: Long) extends Event
   case class WrappedOperationResult(operationResult:OperationResult) extends Command
-  def apply(persistenceId: PersistenceId,option: ServerOption): Behavior[Command] = Behaviors.setup { context => new TimerEntity(persistenceId, option,context).timer()
+  def apply(persistenceId: PersistenceId,option: ServerOption): Behavior[Command] = Behaviors.setup { context =>
+    Behaviors.withTimers {
+      timers =>
+      new TimerEntity(persistenceId, option,timers, context).timer()
+    }
   }
 
 
@@ -65,7 +77,7 @@ object TimerEntity {
 /**
  * 定时器实体
  */
-class TimerEntity(persistenceId: PersistenceId, option:ServerOption,context: ActorContext[Command]) {
+class TimerEntity(persistenceId: PersistenceId, option:ServerOption,timers:TimerScheduler[Command],context: ActorContext[Command]) {
 
 
   def timer(): Behavior[Command] =
@@ -79,8 +91,10 @@ class TimerEntity(persistenceId: PersistenceId, option:ServerOption,context: Act
 
     }
 
-  case class TimingWheelTimer(timerStorage: TimingWheelStorage,var expireSchedules: Map[Long,ScheduleContext]) extends Timer {
 
+  case class TimingWheelTimer(timerStorage: TimingWheelStorage,var expireSchedules: Map[Long,ScheduleContext]) extends Timer {
+    //定时执行
+    timers.startTimerWithFixedDelay(ScheduleAction,option.scheduleExpireActionInterval)
     override def enabled(boolean: Boolean): Unit = {
       if(boolean){
         timerStorage.start()
@@ -99,7 +113,7 @@ class TimerEntity(persistenceId: PersistenceId, option:ServerOption,context: Act
             Effect.persist(ScheduleAdded(body, expire, timestamp)).thenReply(replyTo)(_ => Success)
           }
         case ScheduleDel(id, peer, replyTo) =>
-          if(timerStorage.hasTimer(id)){
+          if(timerStorage.hasTimer(id) || expireSchedules.contains(id)){
             Effect.persist(ScheduleDeleted(id)).thenReply(replyTo)(_ => Success)
           }else{
             Effect.none.thenReply(replyTo)(_ => Reject)
@@ -107,14 +121,25 @@ class TimerEntity(persistenceId: PersistenceId, option:ServerOption,context: Act
         case ScheduleExpire(body) =>
           Effect.persist(ScheduleExpired(body)).thenNoReply()
           //触发到期事件
-        case ScheduleDo(body,replyTo) =>
-          val actorRef = context.spawnAnonymous(ScheduleBroker(context.self,body))
-          actorRef ! Expire
-          Effect.persist(ScheduleDone(body.id)).thenReply(replyTo)(_=>Success)
+        case ScheduleDo(id) =>
+          Effect.persist(ScheduleDone(id)).thenNoReply()
+          //执行调度失败，重新启用
         case ScheduleRedo(body) =>
-          expireSchedules += (body.id -> body)
+          //将执行中改为未执行
+          expireSchedules(body.id).actioning = false
           Effect.none.thenNoReply()
-
+          //定时执行调度
+        case ScheduleAction =>
+          val now = Deadline.now
+          //将在执行中的，没有到需要执行时间的过滤掉
+          expireSchedules.values.filter(schedule => schedule.actioning).filter(schedule => schedule.nextActionTimer < now ).foreach{schedule =>
+            //当前时间加上执行间隔就是下一次要执行的时间
+            schedule.nextActionTimer = now + option.scheduleActionInterval
+            //执行定时任务
+            val actorRef = context.spawnAnonymous(ScheduleBroker(context.self,schedule.body))
+            actorRef ! Expire
+          }
+          Effect.none.thenNoReply()
       }
     }
 
@@ -131,9 +156,10 @@ class TimerEntity(persistenceId: PersistenceId, option:ServerOption,context: Act
         case ScheduleDeleted(id) =>
           context.log.debug(s"接收到删除调度任务命令 actionId：$id")
           timerStorage.delete(id)
+          expireSchedules -= id
           this
         case ScheduleExpired(body) =>
-          expireSchedules += (body.id -> ScheduleContext(body,null))
+          expireSchedules += (body.id -> ScheduleContext(body,Deadline.now))
           this
         case ScheduleDone(id) =>
           expireSchedules -= id

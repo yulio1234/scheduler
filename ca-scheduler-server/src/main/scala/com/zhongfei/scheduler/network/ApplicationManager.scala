@@ -3,10 +3,10 @@ package com.zhongfei.scheduler.network
 import akka.actor.typed.receptionist.{Receptionist, ServiceKey}
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors}
 import akka.actor.typed.{ActorRef, Behavior}
+import com.zhongfei.scheduler.network.Application.ScheduleExpire
 import com.zhongfei.scheduler.network.ApplicationManager._
 import com.zhongfei.scheduler.network.ServerDispatcher.WrappedScheduleExpire
 import com.zhongfei.scheduler.options.ServerOption
-import com.zhongfei.scheduler.timer.TimerEntity.ScheduleExpire
 import com.zhongfei.scheduler.transfer.OperationResult
 import com.zhongfei.scheduler.transport.Peer
 import com.zhongfei.scheduler.transport.protocol.ApplicationOption
@@ -14,7 +14,7 @@ object ApplicationManager{
   trait Command
   //命令（请求）
   //应用心跳检测请求
-  case class HeartBeat(actionId:Long,applicationOption: ApplicationOption,peer: Peer,replyTo:ActorRef[OperationResult])
+  case class HeartBeat(applicationOption: ApplicationOption,replyTo:ActorRef[OperationResult])
     extends Command with ApplicationGroup.Command with Application.Command
   //事件（响应）
   case class HeartBeaten(actionId:Long) extends OperationResult
@@ -35,12 +35,10 @@ object ApplicationManager{
   //应用组关闭事件
   case class GroupTerminated(appGroupName:String) extends Command
   val applicationListKey = ServiceKey[ApplicationListQuery]("queryApplication")
-  val scheduleExpireKey = ServiceKey[ScheduleExpire]("scheduleExpire")
   val selectAnApplication = ServiceKey[SelectAnApplication]("selectAnApplication")
   def apply(option:ServerOption,dispatcher:ActorRef[WrappedScheduleExpire]): Behavior[Command] = Behaviors.setup{context =>
     //注册应用查询事件
     context.system.receptionist ! Receptionist.register(applicationListKey,context.self)
-    context.system.receptionist ! Receptionist.register(scheduleExpireKey,context.self)
     context.system.receptionist ! Receptionist.register(selectAnApplication,context.self)
     new ApplicationManager(option,dispatcher,context).manage(Map.empty)}
 }
@@ -50,7 +48,7 @@ object ApplicationManager{
  */
 private class ApplicationManager(option:ServerOption, dispatcher: ActorRef[WrappedScheduleExpire], context:ActorContext[Command]){
   private def manage(appGroupMap:Map[String,ActorRef[ApplicationGroup.Command]]): Behavior[Command] = Behaviors.receiveMessage[Command]{
-      case command @ HeartBeat(_, applicationOption,_,_) =>
+      case command @ HeartBeat(applicationOption,_) =>
         appGroupMap.get(applicationOption.applicationName) match {
             //如果有应用组就转发消息
           case Some(actor) => actor ! command

@@ -39,7 +39,7 @@ object SchedulerConnectionManager {
   //返回在线服务列表
   case class OnlineServerListQueried(set:Set[ActorRef[SchedulerConnection.Command]]) extends Event
 
-  def apply(option: ClientOption,dispatcher: ActorRef[Dispatcher.Message]): Behavior[Message] = Behaviors.setup { context => Behaviors.withTimers{
+  def apply(option: ClientOption,dispatcher: ActorRef[Dispatcher.Command]): Behavior[Message] = Behaviors.setup { context => Behaviors.withTimers{
     timers =>
     val client = new SchedulerClient(RequestProtocolHandlerFactory.create(dispatcher), ResponseProtocolHandlerFactory.create(dispatcher))
       new SchedulerConnectionManager(option,timers, dispatcher,context).down(client)
@@ -53,7 +53,7 @@ object SchedulerConnectionManager {
  * @param option
  * @param context
  */
-class SchedulerConnectionManager(option: ClientOption,  timers: TimerScheduler[Message], dispatcher: ActorRef[Dispatcher.Message],context: ActorContext[Message]){
+class SchedulerConnectionManager(option: ClientOption,  timers: TimerScheduler[Message], dispatcher: ActorRef[Dispatcher.Command],context: ActorContext[Message]){
   /**
    * 下线状态
    *

@@ -1,7 +1,7 @@
 package com.zhongfei.scheduler.network.codec
 
 import com.zhongfei.scheduler.Exception.SchedulerExceptionFactory
-import com.zhongfei.scheduler.network.Dispatcher.{Message, ScheduleAdded}
+import com.zhongfei.scheduler.network.Dispatcher.Command
 import com.zhongfei.scheduler.transport.Peer
 import com.zhongfei.scheduler.transport.codec.ResponseProtocolDecoder
 import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol
@@ -10,7 +10,7 @@ import com.zhongfei.scheduler.utils.Logging
 /**
  * 注册调度解码器
  */
-class ScheduleAddedDecoder extends ResponseProtocolDecoder[ScheduleAdded,Message] with Logging{
+class ScheduleAddedDecoder extends ResponseProtocolDecoder[ScheduleAdded,Command] with Logging{
   /**
    * 执行节码操作
    *

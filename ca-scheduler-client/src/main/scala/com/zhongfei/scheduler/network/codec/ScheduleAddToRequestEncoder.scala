@@ -2,8 +2,7 @@ package com.zhongfei.scheduler.network.codec
 
 import java.util
 
-import com.alibaba.fastjson.JSON
-import com.zhongfei.scheduler.network.Dispatcher.{HeartBeat, ScheduleAdd}
+import com.zhongfei.scheduler.network.Dispatcher.ScheduleAdd
 import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.{ActionTypeEnum, Request}
 import com.zhongfei.scheduler.utils.Logging
 import io.netty.channel.ChannelHandlerContext

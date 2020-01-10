@@ -2,10 +2,12 @@ package com.zhongfei.scheduler.network
 
 import akka.actor.typed.scaladsl.{ActorContext, Behaviors, TimerScheduler}
 import akka.actor.typed.{ActorRef, Behavior}
-import com.zhongfei.scheduler.network.Dispatcher.{HeartBeat, HeartBeaten, Unregister}
+import com.zhongfei.scheduler.network.Dispatcher.{WrappedHeartBeat, WrappedUnregister}
 import com.zhongfei.scheduler.network.SchedulerConnection._
 import com.zhongfei.scheduler.network.SchedulerConnectionManager.{Event => _, Message => _, apply => _, _}
 import com.zhongfei.scheduler.transport.protocol.ApplicationOption
+import com.zhongfei.scheduler.transport.protocol.ScheduleActionProtocol.{HeartBeat, OperationResult, Unregister}
+import com.zhongfei.scheduler.transport.protocol.SchedulerProtocol.ActionTypeEnum
 import com.zhongfei.scheduler.transport.{Node, Peer}
 import com.zhongfei.scheduler.utils.IDGenerator
 import io.netty.channel.ChannelFuture
@@ -38,11 +40,11 @@ object SchedulerConnection {
   case object Reconnect extends Command
 
   case object Unreachable extends Command
-
+  case class WrappedOperationResult(operationResult: OperationResult) extends Command
   def apply(option: ClientOption,
             node: Node,
             manager: ActorRef[SchedulerConnectionManager.Message],
-            dispatcher: ActorRef[Dispatcher.Message],
+            dispatcher: ActorRef[Dispatcher.Command],
             schedulerClient: SchedulerClient): Behavior[Message] =
     Behaviors.setup { context =>
       Behaviors.withTimers { timers =>
@@ -63,20 +65,22 @@ class SchedulerConnection(option: ClientOption,
                           node: Node,
                           timers: TimerScheduler[Message],
                           manager: ActorRef[SchedulerConnectionManager.Message],
-                          dispatcher: ActorRef[Dispatcher.Message],
+                          dispatcher: ActorRef[Dispatcher.Command],
                           client: SchedulerClient, context: ActorContext[Message]) {
 
-  case class WrappedHeartBeaten(response: Dispatcher.Message) extends Event
 
-  private val heartBeatenAdapter: ActorRef[Dispatcher.Message] = context.messageAdapter(WrappedHeartBeaten)
+
+  private val operationResultAdapter = context.messageAdapter(WrappedOperationResult)
 
   /**
    * 被移除的状态，
    * @return
    */
-  def removed():Behavior[Message] = Behaviors.receiveMessage{
+  def remove():Behavior[Message] = Behaviors.receiveMessage{
     case Reconnect =>
       context.log.debug(s"服务器节点：$node，服务已经被移除，不执行重连请求操作")
+      Behaviors.same
+    case WrappedOperationResult(operationResult) if operationResult.actionType==ActionTypeEnum.Unregister =>
       Behaviors.stopped
     case ? @ _ =>
       context.log.warn(s"服务器节点：$node，关闭状态接收到请求 $?")
@@ -110,7 +114,7 @@ class SchedulerConnection(option: ClientOption,
         //定时检测是否在线
         timers.startTimerWithFixedDelay(CheckHeartBeatIntervalTimeout, CheckHeartBeatIntervalTimeout, option.checkHeartBeatOnCloseInterval)
         //初始化成功后立即发送心跳
-        dispatcher ! HeartBeat(IDGenerator.next(),ApplicationOption( option.appName,option.processWaitTime), peer, heartBeatenAdapter)
+        dispatcher ! WrappedHeartBeat(HeartBeat(IDGenerator.next(),ApplicationOption( option.appName,option.processWaitTime), peer, operationResultAdapter))
         //并通知管理器服务已经上线
         manager ! Connected(node.uri(), context.self)
         context.log.debug(s"服务器节点：$node，链接成功，转换为上线状态")
@@ -143,24 +147,23 @@ class SchedulerConnection(option: ClientOption,
       Behaviors.same
     case ServerTerminate =>
       context.log.debug(s"服务器节点：$node，接收到关闭服务请求，正在关闭服务")
-      removed()
+      remove()
   }
 
   def up(lastedHeartBeatTime: FiniteDuration, peer: Peer): Behavior[Message] = Behaviors.receiveMessage {
     //定时向服务器发送心跳请求
     case SendHeatBeat =>
       context.log.debug(s"服务器节点：$node，服务已在线，发送心跳请求")
-      dispatcher ! HeartBeat(IDGenerator.next(),ApplicationOption( option.appName,option.processWaitTime),peer, heartBeatenAdapter)
+      dispatcher ! WrappedHeartBeat(HeartBeat(IDGenerator.next(),ApplicationOption( option.appName,option.processWaitTime), peer, operationResultAdapter))
       Behaviors.same
     //收到心跳请求后，处理
-    case WrappedHeartBeaten(response) if response.isInstanceOf[HeartBeaten] =>
-      val heartBeaten = response.asInstanceOf[HeartBeaten]
-      if (heartBeaten.success) {
+    case WrappedOperationResult(operationResult) if operationResult.actionType == ActionTypeEnum.HeartBeat =>
+      if (operationResult.success) {
         context.log.debug(s"服务器节点：$node，收到成功心跳响应，刷新记录时间")
         //将返回的服务器数据交给连接管理器处理
         up(Deadline.now.time, peer)
       }else{
-        context.log.warn(s"服务器节点：$node，收到失败心跳响应",heartBeaten.cause)
+        context.log.warn(s"服务器节点：$node，收到失败心跳响应",operationResult.cause)
         Behaviors.same
       }
     //检查心跳超时
@@ -190,8 +193,8 @@ class SchedulerConnection(option: ClientOption,
     //关闭链接
     case ServerTerminate =>
       context.log.debug(s"服务器节点：$node，接收到关闭服务请求，正在关闭服务")
-      dispatcher ! Unregister(IDGenerator.next(),option.appName)
-      removed()
+      dispatcher ! WrappedUnregister(Unregister(IDGenerator.next(),option.appName,peer,operationResultAdapter))
+      remove()
   }
 
   /**
@@ -203,10 +206,10 @@ class SchedulerConnection(option: ClientOption,
     //定时向服务器发送心跳请求
     case SendHeatBeat =>
       context.log.warn(s"服务器节点：$node，服务端无法链接，正在心跳请求：$peer")
-      dispatcher ! HeartBeat(IDGenerator.next(),ApplicationOption( option.appName,option.processWaitTime), peer, heartBeatenAdapter)
+      dispatcher ! WrappedHeartBeat(HeartBeat(IDGenerator.next(),ApplicationOption( option.appName,option.processWaitTime), peer, operationResultAdapter))
       Behaviors.same
-    case WrappedHeartBeaten(response) if response.isInstanceOf[HeartBeaten] =>
-      context.log.debug(s"服务器节点：$node，服务端通讯恢复，重新设置为上线状态：$response")
+    case  WrappedOperationResult(operationResult) if operationResult.actionType == ActionTypeEnum.HeartBeat =>
+      context.log.debug(s"服务器节点：$node，服务端通讯恢复，重新设置为上线状态：$operationResult")
       //将返回的服务器数据交给连接管理器处理
       manager ! ServerActive(node.uri())
       up(Deadline.now.time, peer)
@@ -219,7 +222,7 @@ class SchedulerConnection(option: ClientOption,
     case ServerTerminate =>
       context.log.debug(s"服务器节点：$node，接收到关闭服务请求，正处于不可达状态，直接关闭服务")
       peer.close()
-      removed()
+      remove()
   }
 
   /**

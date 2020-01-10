@@ -7,6 +7,25 @@ import com.zhongfei.scheduler.common.Message
  * 通讯协议
  */
 object SchedulerProtocol{
+  //魔数
+  val magic:Byte = 0x0079
+  //版本号
+  val version:Byte = 1
+
+  /**
+   * 协议类型enum
+   */
+  object ProtocolTypeEnum extends Enumeration{
+    val Request,Response = Value
+  }
+
+
+  /**
+   * 动作类型enum
+   */
+  object ActionTypeEnum extends Enumeration {
+    val HeartBeat,Unregister,ScheduleAdd,ScheduleDel,ScheduleExpire,ActiveServerFetch = Value
+  }
   //协议标记
   class Protocol(
                   val magic:Byte=magic,
@@ -37,23 +56,4 @@ object SchedulerProtocol{
                        override val length:Short = 0,
                        override val content:Array[Byte] = null
                      ) extends Protocol(protocolType = ProtocolTypeEnum.Response.id.toByte,actionId = actionId,actionType = actionType,timestamp = timestamp)
-  //魔数
-  val magic:Byte = 0x0079
-  //版本号
-  val version:Byte = 1
-
-  /**
-   * 协议类型enum
-   */
-  object ProtocolTypeEnum extends Enumeration{
-    val Request,Response = Value
-  }
-
-
-  /**
-   * 动作类型enum
-   */
-  object ActionTypeEnum extends Enumeration {
-    val HeartBeat,Unregister,ScheduleAdd,ScheduleDel,ScheduleExpire,ActiveServerFetch = Value
-  }
 }
